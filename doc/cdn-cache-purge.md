@@ -11,6 +11,12 @@ and `cdn_enabled` there is not `false` (a missing value counts as on). Both are 
 every request loads anyway, so the check adds no query. The auto-purge toggle is checked when a
 change is queued.
 
+**Until client-app sends these fields, nothing here changes behaviour:** no flag is ever stored, so
+every connected site keeps purging (and a site without CDN keeps calling client-app on each change,
+as before). client-app must start pushing `cdn_enabled: true` on plan upgrades (`v2/manage/cdn`) no
+later than it starts sending `cdn_enabled: false`, or a site upgraded in between stays "off" until
+a manual purge or a reconnect.
+
 `cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
 connect-helpers, which also clears them when the connect ID changes), the restore response, every
 purge response (`data.cdn_enabled`), and the `POST v2/manage/cdn` route client-app calls when a plan
@@ -58,14 +64,14 @@ error, its URLs (or a "full purge" marker) go into the `instawp_cdn_purge_pendin
 - the next purge on the site sends them along with its own URLs (more than 20 together becomes one
   full purge);
 - with nothing new to purge, they are sent on their own at shutdown once 5 minutes have passed, but
-  only where nobody waits for it: a cron run, or a request whose response PHP-FPM/LiteSpeed finished
-  first. Never at the end of a WP-CLI command. The request claims the list before sending, so two
+  only where nobody waits for it: an HTTP wp-cron run, or a request whose response PHP-FPM/LiteSpeed
+  finished first. Never at the end of a WP-CLI command, including `wp cron event run`. The request claims the list before sending, so two
   requests rarely both send it (a duplicate purge is harmless). On hosts with neither, the list
   waits for the next purge or cron run.
 
 A successful purge removes what it covered (a full purge: everything) that was added before it was
-sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx drops the URLs it
-was sent with. The list
+sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx, or a 2xx that is not
+a success (e.g. a firewall page), drops the URLs it was sent with. The list
 is ignored when it was saved under another connect ID (reconnect, staging copy, migrated site).
 
 ## Nobody waits for the purge

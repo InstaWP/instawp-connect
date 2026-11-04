@@ -957,8 +957,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			// This request's copy may be from before a long purge call; write on a fresh one so
 			// a key or token saved meanwhile is kept.
-			wp_cache_delete( 'instawp_api_options', 'options' );
-			$fresh = Helper::get_options();
+			$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
 			$fresh = is_array( $fresh ) ? $fresh : array();
 			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
 				if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
@@ -1037,24 +1036,42 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @return array
 		 */
 		private static function get_pending_fresh() {
-			global $wpdb;
-
-			$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::PENDING_OPTION ) );
+			$raw = self::read_option_fresh( self::PENDING_OPTION );
 			if ( null === $raw ) {
 				return self::get_pending();
+			}
+
+			return self::normalize_pending( maybe_unserialize( $raw ) );
+		}
+
+		/**
+		 * An option's stored value read from the database, bypassing this request's copy.
+		 * The request's cache is updated to match, so update_option() compares against
+		 * what is really stored, whether the option is autoloaded or not.
+		 *
+		 * @param string $name Option name.
+		 *
+		 * @return string|null Raw (serialized) value, or null when the row does not exist.
+		 */
+		private static function read_option_fresh( $name ) {
+			global $wpdb;
+
+			$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $name ) );
+			if ( null === $raw ) {
+				return null;
 			}
 
 			// Forced, as update_option() does: with a persistent object cache the request's own
 			// copy may be minutes old, and writing it back would revert other options.
 			$alloptions = wp_load_alloptions( true );
-			if ( isset( $alloptions[ self::PENDING_OPTION ] ) ) {
-				$alloptions[ self::PENDING_OPTION ] = $raw;
+			if ( isset( $alloptions[ $name ] ) ) {
+				$alloptions[ $name ] = $raw;
 				wp_cache_set( 'alloptions', $alloptions, 'options' );
 			} else {
-				wp_cache_set( self::PENDING_OPTION, $raw, 'options' );
+				wp_cache_set( $name, $raw, 'options' );
 			}
 
-			return self::normalize_pending( maybe_unserialize( $raw ) );
+			return $raw;
 		}
 
 		/**
