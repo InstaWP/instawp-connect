@@ -81,9 +81,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * Constructor.
 		 */
 		public function __construct() {
-			// Not connected, auto-purge off, or the site has no CDN: nothing here can
-			// purge, so no hook is added at all. The static purge methods still work.
-			if ( ! $this->can_purge() ) {
+			// Not connected, or client-app said the site has no CDN: nothing here can
+			// purge, so no hook is added at all. Both come from instawp_api_options, which
+			// every request reads anyway. The auto-purge toggle is checked when something
+			// is queued, as before, so this adds no query. The static purge methods still work.
+			if ( empty( Helper::get_connect_id() ) || self::is_cdn_disabled() ) {
 				return;
 			}
 
@@ -423,8 +425,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Send the pending list on its own when it is due and nobody waits for it.
-		 * A request that cannot finish its response early leaves it for a later one.
+		 * Send the pending list on its own when it is due and nobody waits for it (cron,
+		 * or a response finished early). Other requests leave it for a later one.
 		 *
 		 * @param array $pending Pending list from get_pending().
 		 */
@@ -433,8 +435,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			$no_one_waits = ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron();
-			if ( ! $no_one_waits && ! $this->finish_request() ) {
+			// Not under WP-CLI: it would hold up whatever unrelated command is ending.
+			if ( ( defined( 'WP_CLI' ) && WP_CLI ) || ! $this->can_purge() ) {
+				return;
+			}
+
+			if ( ! wp_doing_cron() && ! $this->finish_request() ) {
 				return;
 			}
 
@@ -519,6 +525,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array $urls URLs to purge when not a full purge.
 		 */
 		private function send( $full, array $urls ) {
+			$sent_at  = microtime( true );
 			$response = $full ? instawp_purge_cdn_cache() : self::purge_urls( $urls );
 
 			if ( is_array( $response ) && ! empty( $response['success'] ) ) {
@@ -533,6 +540,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				return;
 			}
+
+			// It would fail the same way again (e.g. URLs not on the site's domain): drop it,
+			// so it does not ride along with, and spoil, every later purge.
+			self::clear_covered( $full, $urls, $sent_at );
 
 			Helper::add_error_log(
 				array(
@@ -944,7 +955,18 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			Helper::set_settings( $api_options );
+			// This request's copy may be from before a long purge call; write on a fresh one so
+			// a key or token saved meanwhile is kept.
+			wp_cache_delete( 'instawp_api_options', 'options' );
+			$fresh = Helper::get_options();
+			$fresh = is_array( $fresh ) ? $fresh : array();
+			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+				if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
+					$fresh[ $key ] = $flags[ $key ];
+				}
+			}
+
+			Helper::set_settings( $fresh );
 
 			if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
 				self::save_pending( self::empty_pending() );
@@ -1022,7 +1044,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return self::get_pending();
 			}
 
-			$alloptions = wp_load_alloptions();
+			// Forced, as update_option() does: with a persistent object cache the request's own
+			// copy may be minutes old, and writing it back would revert other options.
+			$alloptions = wp_load_alloptions( true );
 			if ( isset( $alloptions[ self::PENDING_OPTION ] ) ) {
 				$alloptions[ self::PENDING_OPTION ] = $raw;
 				wp_cache_set( 'alloptions', $alloptions, 'options' );

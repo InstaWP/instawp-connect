@@ -6,13 +6,13 @@ changes, so visitors never keep seeing an old page. It is on by default and cont
 
 ## When it runs at all
 
-The class adds no hooks at all unless all three hold:
+The class adds no hooks at all unless the site is connected (`connect_id` in `instawp_api_options`)
+and `cdn_enabled` there is not `false` (a missing value counts as on). Both are read from an option
+every request loads anyway, so the check adds no query. The auto-purge toggle is checked when a
+change is queued.
 
-- the site is connected (`connect_id` in `instawp_api_options`);
-- auto-purge is on;
-- `cdn_enabled` in `instawp_api_options` is not `false`. A missing value counts as on.
-
-`cdn_enabled` and `is_insta_site` come from client-app: the connect and restore responses, every
+`cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
+connect-helpers, which also clears them when the connect ID changes), the restore response, every
 purge response (`data.cdn_enabled`), and the `POST v2/manage/cdn` route client-app calls when a plan
 change turns the CDN on. Only an explicit boolean is saved. A connected site without CDN therefore
 stops calling client-app after its first answer. The WooCommerce hooks are added from
@@ -58,11 +58,14 @@ error, its URLs (or a "full purge" marker) go into the `instawp_cdn_purge_pendin
 - the next purge on the site sends them along with its own URLs (more than 20 together becomes one
   full purge);
 - with nothing new to purge, they are sent on their own at shutdown once 5 minutes have passed, but
-  only where nobody waits for it (PHP-FPM/LiteSpeed finish the response first, or WP-CLI/cron). The
-  request claims the list before sending, so two requests at once send it once.
+  only where nobody waits for it: a cron run, or a request whose response PHP-FPM/LiteSpeed finished
+  first. Never at the end of a WP-CLI command. The request claims the list before sending, so two
+  requests rarely both send it (a duplicate purge is harmless). On hosts with neither, the list
+  waits for the next purge or cron run.
 
 A successful purge removes what it covered (a full purge: everything) that was added before it was
-sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx is dropped. The list
+sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx drops the URLs it
+was sent with. The list
 is ignored when it was saved under another connect ID (reconnect, staging copy, migrated site).
 
 ## Nobody waits for the purge
