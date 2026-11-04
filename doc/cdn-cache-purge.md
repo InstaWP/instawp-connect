@@ -15,7 +15,7 @@ change is queued.
 every connected site keeps purging (and a site without CDN keeps calling client-app on each change,
 as before). client-app must start pushing `cdn_enabled: true` on plan upgrades (`v2/manage/cdn`) no
 later than it starts sending `cdn_enabled: false`, or a site upgraded in between stays "off" until
-its next heartbeat (at most a day).
+its next heartbeat (at most a day; never, if the heartbeat is turned off on that site).
 
 `cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
 connect-helpers, which also clears them when the connect ID changes), the restore response, every
@@ -68,7 +68,11 @@ error, its URLs (or a "full purge" marker) go into the `instawp_cdn_purge_pendin
   only where nobody waits for it: an HTTP wp-cron run, or a request whose response PHP-FPM/LiteSpeed
   finished first. Never at the end of a WP-CLI command, including `wp cron event run`. The request claims the list before sending, so two
   requests rarely both send it (a duplicate purge is harmless). On hosts with neither, the list
-  waits for the next purge or cron run.
+  waits for the next purge or the next HTTP WP-Cron run, not for the 5 minutes.
+- A purge that could not be handed to WP-Cron also goes on the list.
+
+On multisite the gate is decided per request for the site that loaded it, so a change made with
+`switch_to_blog()` into a connected subsite from an unconnected one is not purged.
 
 A successful purge removes what it covered (a full purge: everything) that was added before it was
 sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx, or a 2xx that is not

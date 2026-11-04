@@ -502,13 +502,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			$scheduled = wp_schedule_single_event( time(), self::DEFERRED_HOOK, array( $payload ) );
 			if ( false === $scheduled || is_wp_error( $scheduled ) ) {
-				Helper::add_error_log(
-					array(
-						'message' => 'CDN cache purge could not be scheduled',
-						'error'   => is_wp_error( $scheduled ) ? $scheduled->get_error_message() : 'wp_schedule_single_event returned false',
-						'urls'    => $urls,
-					)
-				);
+				// Kept for the next purge or the stand-alone retry rather than lost.
+				self::add_pending( $full, $urls );
 
 				return;
 			}
@@ -956,12 +951,13 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			}
 
 			// This request's copy may be from before a long purge call; write on a fresh one so
-			// a key or token saved meanwhile is kept. A connected site always has this row, so no
-			// usable row means the read failed: then the request's copy is written, never an
-			// empty array, which would drop the API key and disconnect the site.
+			// a key or token saved meanwhile is kept. No usable row means the read failed or the
+			// site was disconnected meanwhile: write nothing then. Writing an empty array would
+			// drop the API key, and writing this request's copy could bring back a deleted one.
+			// The flags arrive again with the next heartbeat or purge response.
 			$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
 			if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
-				$fresh = $api_options;
+				return;
 			}
 			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
 				if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
