@@ -88,13 +88,23 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private $pending_urls = array();
 
 		/**
-		 * Products whose stock WooCommerce is changing in this request, keyed by ID: the
-		 * quantity before the change (from the before_set_stock hooks). A variation also
-		 * marks its parent, which WooCommerce re-saves at shutdown to sync it.
+		 * Products whose stock WooCommerce is changing right now, keyed by ID: the
+		 * quantity before the change (from the before_set_stock hooks). Each mark is
+		 * cleared once that product's set_stock hook has run, so a later, unrelated save
+		 * of the same product in the same request purges normally.
 		 *
 		 * @var array
 		 */
 		private $stock_changes = array();
+
+		/**
+		 * Parents of variations whose stock changed in this request, keyed by ID.
+		 * WooCommerce re-saves them at shutdown (priority 10) to sync them; the marks are
+		 * cleared right after that (priority 11).
+		 *
+		 * @var array
+		 */
+		private $stock_sync_parents = array();
 
 		/**
 		 * Whether a full CDN purge was requested during the current request.
@@ -138,6 +148,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				add_action( self::STOCK_DAILY_HOOK, array( $this, 'handle_daily_stock_purge' ) );
 				// Late, so every other shutdown callback has sent its output before the
 				// response may be finished early.
+				add_action( 'shutdown', array( $this, 'clear_stock_sync_parents' ), 11 );
 				add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
 			} catch ( \Throwable $th ) {
 				self::log_throwable( '__construct', $th );
@@ -295,12 +306,25 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					return;
 				}
 
-				$this->stock_changes[ (int) $product->get_id() ] = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
+				$product_id = (int) $product->get_id();
+				if ( ! array_key_exists( $product_id, $this->stock_changes ) ) {
+					// get_data() is the stored value even when a plugin has already set a new
+					// quantity on the object (set_stock_quantity() then save()), where
+					// get_stock_quantity() would return the new one.
+					$data = method_exists( $product, 'get_data' ) ? $product->get_data() : array();
+					if ( is_array( $data ) && array_key_exists( 'stock_quantity', $data ) ) {
+						$before = $data['stock_quantity'];
+					} else {
+						$before = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
+					}
+
+					$this->stock_changes[ $product_id ] = $before;
+				}
 
 				// WooCommerce re-saves the parent of a variation at shutdown to sync it.
 				$parent_id = method_exists( $product, 'get_parent_id' ) ? (int) $product->get_parent_id() : 0;
-				if ( $parent_id && ! array_key_exists( $parent_id, $this->stock_changes ) ) {
-					$this->stock_changes[ $parent_id ] = null;
+				if ( $parent_id ) {
+					$this->stock_sync_parents[ $parent_id ] = true;
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_before_set_stock', $th );
@@ -324,7 +348,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					return;
 				}
 
-				if ( array_key_exists( absint( $product_id ), $this->stock_changes ) ) {
+				$product_id = absint( $product_id );
+				if ( array_key_exists( $product_id, $this->stock_changes ) || isset( $this->stock_sync_parents[ $product_id ] ) ) {
 					return;
 				}
 
@@ -344,10 +369,21 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			try {
 				if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
 					$this->handle_quantity_change( $product );
+
+					// This stock change is done: a later save of the product is a new change.
+					unset( $this->stock_changes[ (int) $product->get_id() ] );
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_stock_quantity', $th );
 			}
+		}
+
+		/**
+		 * Shutdown, priority 11: WooCommerce has re-saved the parents of the variations
+		 * sold in this request (priority 10), so their marks are no longer needed.
+		 */
+		public function clear_stock_sync_parents() {
+			$this->stock_sync_parents = array();
 		}
 
 		/**
