@@ -15,7 +15,7 @@ change is queued.
 every connected site keeps purging (and a site without CDN keeps calling client-app on each change,
 as before). client-app must start pushing `cdn_enabled: true` on plan upgrades (`v2/manage/cdn`) no
 later than it starts sending `cdn_enabled: false`, or a site upgraded in between stays "off" until
-a manual purge or a reconnect.
+its next heartbeat (at most a day).
 
 `cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
 connect-helpers, which also clears them when the connect ID changes), the restore response, every

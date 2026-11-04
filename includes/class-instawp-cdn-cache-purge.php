@@ -956,9 +956,13 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			}
 
 			// This request's copy may be from before a long purge call; write on a fresh one so
-			// a key or token saved meanwhile is kept.
+			// a key or token saved meanwhile is kept. A connected site always has this row, so no
+			// usable row means the read failed: then the request's copy is written, never an
+			// empty array, which would drop the API key and disconnect the site.
 			$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
-			$fresh = is_array( $fresh ) ? $fresh : array();
+			if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
+				$fresh = $api_options;
+			}
 			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
 				if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
 					$fresh[ $key ] = $flags[ $key ];
