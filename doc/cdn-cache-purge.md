@@ -19,7 +19,8 @@ a manual purge or a reconnect.
 
 `cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
 connect-helpers, which also clears them when the connect ID changes), the restore response, every
-purge response (`data.cdn_enabled`), and the `POST v2/manage/cdn` route client-app calls when a plan
+purge response (`data.cdn_enabled`), every heartbeat response (at least daily, which corrects a
+stored "no CDN" on a site that gained the CDN some other way), and the `POST v2/manage/cdn` route client-app calls when a plan
 change turns the CDN on. Only an explicit boolean is saved. A connected site without CDN therefore
 stops calling client-app after its first answer. The WooCommerce hooks are added from
 `woocommerce_loaded`, so only when WooCommerce is active. `InstaWP_CDN_Cache_Purge::purge_url()`
