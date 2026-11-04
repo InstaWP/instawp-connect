@@ -56,8 +56,9 @@ Stock display format**, and a quantity change purges accordingly:
 For "only when low", the quantity before the change counts too, so a restock clears an
 "Only N left". A sale's own product saves (and WooCommerce's re-save of a variation's parent) are
 left to this rule; any other save in a shopper's request, such as an approved review, purges the
-product's page as before. A product's mark lasts only until its stock hook has run, and a parent's
-until WooCommerce's re-sync at shutdown, so a later unrelated save in the same request purges.
+product's page as before. A product's mark lasts until both its save and its stock hook have run
+(in either order), and a parent's until WooCommerce's re-sync at shutdown, so a later unrelated save
+in the same request purges.
 
 The daily list is read and written without a lock, so two checkouts at the same moment can drop
 one product from it. That product's page then shows the old quantity until it sells again or the
