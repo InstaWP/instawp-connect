@@ -88,10 +88,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private $pending_urls = array();
 
 		/**
-		 * Products whose stock WooCommerce is changing right now, keyed by ID: the
-		 * quantity before the change (from the before_set_stock hooks). Each mark is
-		 * cleared once that product's set_stock hook has run, so a later, unrelated save
-		 * of the same product in the same request purges normally.
+		 * Products whose stock WooCommerce is changing right now, keyed by ID:
+		 * { before: quantity before the change, saved: its save was seen, done: its
+		 * set_stock hook ran }. WooCommerce fires the save and set_stock in either order
+		 * (wc_update_product_stock(): save first; a plugin's set_stock_quantity() + save():
+		 * set_stock first), so a mark ends once both have been seen. A later, unrelated
+		 * save of the same product in the same request then purges normally.
 		 *
 		 * @var array
 		 */
@@ -146,9 +148,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
 				add_action( self::STOCK_DAILY_HOOK, array( $this, 'handle_daily_stock_purge' ) );
+				// Right after WooCommerce re-syncs variation parents at shutdown (priority 10).
+				add_action( 'shutdown', array( $this, 'clear_stock_sync_parents' ), 11 );
 				// Late, so every other shutdown callback has sent its output before the
 				// response may be finished early.
-				add_action( 'shutdown', array( $this, 'clear_stock_sync_parents' ), 11 );
 				add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
 			} catch ( \Throwable $th ) {
 				self::log_throwable( '__construct', $th );
@@ -318,7 +321,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 						$before = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
 					}
 
-					$this->stock_changes[ $product_id ] = $before;
+					$this->stock_changes[ $product_id ] = array(
+						'before' => $before,
+						'saved'  => false,
+						'done'   => false,
+					);
 				}
 
 				// WooCommerce re-saves the parent of a variation at shutdown to sync it.
@@ -349,7 +356,18 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				}
 
 				$product_id = absint( $product_id );
-				if ( array_key_exists( $product_id, $this->stock_changes ) || isset( $this->stock_sync_parents[ $product_id ] ) ) {
+				if ( isset( $this->stock_sync_parents[ $product_id ] ) ) {
+					return;
+				}
+
+				if ( isset( $this->stock_changes[ $product_id ] ) ) {
+					// The sale's own save: skipped. If set_stock already ran, the change is over.
+					if ( $this->stock_changes[ $product_id ]['done'] ) {
+						unset( $this->stock_changes[ $product_id ] );
+					} else {
+						$this->stock_changes[ $product_id ]['saved'] = true;
+					}
+
 					return;
 				}
 
@@ -370,8 +388,15 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
 					$this->handle_quantity_change( $product );
 
-					// This stock change is done: a later save of the product is a new change.
-					unset( $this->stock_changes[ (int) $product->get_id() ] );
+					// The change ends once its save has been seen too (it may still be to come).
+					$product_id = (int) $product->get_id();
+					if ( isset( $this->stock_changes[ $product_id ] ) ) {
+						if ( $this->stock_changes[ $product_id ]['saved'] ) {
+							unset( $this->stock_changes[ $product_id ] );
+						} else {
+							$this->stock_changes[ $product_id ]['done'] = true;
+						}
+					}
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_stock_quantity', $th );
@@ -410,7 +435,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			} elseif ( 'low_amount' === $format ) {
 				$quantity  = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
 				$threshold = function_exists( 'wc_get_low_stock_amount' ) ? wc_get_low_stock_amount( $product ) : (int) get_option( 'woocommerce_notify_low_stock_amount', 2 );
-				$before    = isset( $this->stock_changes[ (int) $product->get_id() ] ) ? $this->stock_changes[ (int) $product->get_id() ] : null;
+				$before    = isset( $this->stock_changes[ (int) $product->get_id() ] ) ? $this->stock_changes[ (int) $product->get_id() ]['before'] : null;
 				$low_now   = null !== $quantity && (int) $quantity <= (int) $threshold;
 				$low_then  = null !== $before && (int) $before <= (int) $threshold;
 				$action    = ( $low_now || $low_then ) ? 'now' : 'none';
