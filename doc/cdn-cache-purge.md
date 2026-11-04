@@ -35,12 +35,34 @@ purge sets it back to on.
 | A post's slug changes | The same, plus its old URL |
 | A post is moved out of a category or tag | The same, plus the archive it left |
 | WooCommerce stock status changes (e.g. an order sells the last item) | The product's pages |
-| WooCommerce stock quantity changes (an order that does not sell out) | The product's own URL only: listings show stock status, not quantity |
-| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages (own URL only when the save comes from a visitor's checkout) |
+| WooCommerce stock quantity changes (an order that does not sell out) | Depends on the store's stock display format; see below. Listings show stock status, not quantity |
+| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages. A visitor's checkout save of a stock-managed product counts as a quantity change |
 | A variation changes | Its parent product's pages |
 | Plugin, theme or core update, theme switch, zip-replace of a plugin/theme | The whole CDN cache |
 
 Drafts and other unpublished content never trigger a purge.
+
+## Stock quantity changes
+
+What a shopper sees of the quantity is set by **WooCommerce > Settings > Products > Inventory >
+Stock display format**, and a quantity change purges accordingly:
+
+| Stock display format | When the quantity changes |
+|---|---|
+| Never show quantity remaining | Nothing is purged |
+| Only show quantity remaining when low | The product's page is purged at once if the new quantity is at or below the product's low-stock threshold (WooCommerce's own, `wc_get_low_stock_amount()`), else nothing |
+| Always show quantity remaining (the default) | The product goes on a daily list (`instawp_cdn_stock_daily`); one WP-Cron run (`instawp_cdn_stock_daily_purge`), scheduled when the first product is added, purges every listed product's page. More than 20 products is one full purge |
+
+A stock status change (in stock / out of stock) always purges the product and its listings at once,
+in every mode. A variation counts as its parent product. A theme that shows the quantity differently
+can override the decision:
+
+```php
+// 'none', 'now' (purge the product's page at once) or 'daily'.
+add_filter( 'instawp_cdn_purge_stock_quantity', function ( $action, $product ) {
+	return 'now';
+}, 10, 2 );
+```
 
 ## "Every page that shows it"
 

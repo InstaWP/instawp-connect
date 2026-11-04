@@ -51,6 +51,18 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		const RETRY_DELAY = 300;
 
 		/**
+		 * Products whose stock quantity changed on a store that always shows the
+		 * quantity, purged together once a day (keyed by product ID). Autoloaded and
+		 * small: past MAX_URLS products the daily run is a full purge anyway.
+		 */
+		const STOCK_DAILY_OPTION = 'instawp_cdn_stock_daily';
+
+		/**
+		 * WP-Cron hook of the daily stock-quantity purge.
+		 */
+		const STOCK_DAILY_HOOK = 'instawp_cdn_stock_daily_purge';
+
+		/**
 		 * Posts changed during the current request, keyed by post ID. The value says
 		 * whether the post's listing pages are purged too (true), or only its own URL
 		 * (false, a stock quantity change from a checkout).
@@ -114,6 +126,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
 
 				add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
+				add_action( self::STOCK_DAILY_HOOK, array( $this, 'handle_daily_stock_purge' ) );
 				// Late, so every other shutdown callback has sent its output before the
 				// response may be finished early.
 				add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
@@ -261,31 +274,143 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		/**
 		 * A WooCommerce product save outside the editor (REST, import, scheduled sale).
 		 * A checkout also saves every product it sells; in a visitor's request that save
-		 * is only a stock quantity change, so it purges the product's own URL.
+		 * is a stock quantity change, handled by the store's stock display setting. A
+		 * visitor's save of a product that does not manage stock purges its own URL.
 		 *
 		 * @param int $product_id Product or variation ID.
 		 */
 		public function handle_product_save( $product_id ) {
 			try {
-				$this->queue_product( $product_id, ! $this->is_visitor_request() );
+				if ( ! $this->is_visitor_request() ) {
+					$this->queue_product( $product_id, true );
+
+					return;
+				}
+
+				$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+				if ( $product && method_exists( $product, 'managing_stock' ) && $product->managing_stock() ) {
+					$this->handle_quantity_change( $product );
+
+					return;
+				}
+
+				$this->queue_product( $product_id, false );
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_product_save', $th );
 			}
 		}
 
 		/**
-		 * A stock quantity change. Listings show stock status, not quantity, so only the
-		 * product's own URL is purged.
+		 * A stock quantity change. Listings show stock status, not quantity, so at most
+		 * the product's own page changes; see handle_quantity_change().
 		 *
 		 * @param WC_Product $product Product or variation.
 		 */
 		public function handle_stock_quantity( $product ) {
 			try {
 				if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
-					$this->queue_product( $product->get_id(), false );
+					$this->handle_quantity_change( $product );
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_stock_quantity', $th );
+			}
+		}
+
+		/**
+		 * Decide what a stock quantity change needs from the store's "Stock display
+		 * format" (WooCommerce > Settings > Products > Inventory), which is what a
+		 * shopper actually sees on the product page:
+		 *
+		 * - never show the quantity: nothing to purge;
+		 * - only show it when low: purge now if it is at or below the product's
+		 *   low-stock threshold (WooCommerce's own, per product or store-wide);
+		 * - always show it (WooCommerce's default): add the product to the daily list.
+		 *
+		 * A stock status change (in/out of stock) is handled by handle_stock_status()
+		 * and always purges the product and its listings at once.
+		 *
+		 * @param WC_Product $product Product or variation.
+		 */
+		private function handle_quantity_change( $product ) {
+			$format = get_option( 'woocommerce_stock_format', '' );
+
+			if ( 'no_amount' === $format ) {
+				$action = 'none';
+			} elseif ( 'low_amount' === $format ) {
+				$quantity  = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
+				$threshold = function_exists( 'wc_get_low_stock_amount' ) ? wc_get_low_stock_amount( $product ) : (int) get_option( 'woocommerce_notify_low_stock_amount', 2 );
+				$action    = ( null !== $quantity && (int) $quantity <= (int) $threshold ) ? 'now' : 'none';
+			} else {
+				$action = 'daily';
+			}
+
+			/**
+			 * Filter what a stock quantity change purges: 'none', 'now' (the product's
+			 * own page, at once) or 'daily' (with the daily batch). For a theme that
+			 * shows the quantity where WooCommerce's setting would not.
+			 *
+			 * @param string     $action  'none', 'now' or 'daily'.
+			 * @param WC_Product $product Product or variation.
+			 */
+			$action = apply_filters( 'instawp_cdn_purge_stock_quantity', $action, $product );
+
+			if ( 'now' === $action ) {
+				$this->queue_product( $product->get_id(), false );
+			} elseif ( 'daily' === $action ) {
+				self::add_to_daily_stock( $product->get_id() );
+			}
+		}
+
+		/**
+		 * Remember a product for the daily stock-quantity purge, and make sure the daily
+		 * run is scheduled.
+		 *
+		 * @param int $product_id Product or variation ID (a variation counts as its parent).
+		 */
+		private static function add_to_daily_stock( $product_id ) {
+			$product_id = absint( $product_id );
+			if ( 'product_variation' === get_post_type( $product_id ) ) {
+				$product_id = wp_get_post_parent_id( $product_id );
+			}
+
+			if ( empty( $product_id ) ) {
+				return;
+			}
+
+			$list = get_option( self::STOCK_DAILY_OPTION, array() );
+			$list = is_array( $list ) ? $list : array();
+
+			// Past MAX_URLS products the daily run is one full purge, so more IDs add nothing.
+			if ( ! isset( $list[ $product_id ] ) && count( $list ) <= self::MAX_URLS ) {
+				$list[ $product_id ] = true;
+				update_option( self::STOCK_DAILY_OPTION, $list, true );
+			}
+
+			if ( ! wp_next_scheduled( self::STOCK_DAILY_HOOK ) ) {
+				wp_schedule_single_event( time() + DAY_IN_SECONDS, self::STOCK_DAILY_HOOK );
+			}
+		}
+
+		/**
+		 * The daily run: purge the page of every product whose quantity changed since the
+		 * last one. Queued like any other change, so it is sent at the end of this cron
+		 * request, becomes a full purge past MAX_URLS, and goes on the pending list if
+		 * it fails.
+		 */
+		public function handle_daily_stock_purge() {
+			try {
+				$list = get_option( self::STOCK_DAILY_OPTION, array() );
+				update_option( self::STOCK_DAILY_OPTION, array(), true );
+
+				if ( ! is_array( $list ) || empty( $list ) || ! $this->can_purge() ) {
+					return;
+				}
+
+				foreach ( array_keys( $list ) as $product_id ) {
+					$this->queue_product( $product_id, false );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_daily_stock_purge', $th );
 			}
 		}
 
@@ -1040,6 +1165,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
 					self::save_pending( self::empty_pending() );
+					update_option( self::STOCK_DAILY_OPTION, array(), true );
 				}
 
 				return true;
