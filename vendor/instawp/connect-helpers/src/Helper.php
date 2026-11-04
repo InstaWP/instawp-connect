@@ -768,6 +768,18 @@ class Helper {
 				if ( $connect_id && $connect_uuid ) {
 					$api_options['connect_id']   = intval( $connect_id );
 					$api_options['connect_uuid'] = sanitize_text_field( $connect_uuid );
+
+					// Whether the site is hosted with InstaWP and has the CDN, for instawp-connect's
+					// CDN auto-purge. Taken only as explicit booleans; a response without them (older
+					// client-app) removes any value copied in with the options (staging, migration).
+					foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $cdn_key ) {
+						if ( isset( $connect_response['data'][ $cdn_key ] ) && is_bool( $connect_response['data'][ $cdn_key ] ) ) {
+							$api_options[ $cdn_key ] = $connect_response['data'][ $cdn_key ];
+						} elseif ( isset( $api_options[ $cdn_key ] ) ) {
+							unset( $api_options[ $cdn_key ] );
+						}
+					}
+
 					if ( ! empty( $plan_id ) ) {
 						$plan_id = intval( $plan_id );
 						$key     = "plan_{$plan_id}_timestamp";
@@ -1096,7 +1108,17 @@ class Helper {
 	}
 
 	public static function set_connect_id( $connect_id ) {
-		$api_options               = self::get_options();
+		$api_options = self::get_options();
+
+		// The CDN flags belong to the previous connect; unknown until client-app says.
+		if ( intval( self::get_args_option( 'connect_id', $api_options ) ) !== intval( $connect_id ) ) {
+			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $cdn_key ) {
+				if ( isset( $api_options[ $cdn_key ] ) ) {
+					unset( $api_options[ $cdn_key ] );
+				}
+			}
+		}
+
 		$api_options['connect_id'] = intval( $connect_id );
 
 		return self::set_settings( $api_options );
