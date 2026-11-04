@@ -37,6 +37,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		/**
 		 * Option holding purges that failed and are retried later. Autoloaded and
 		 * always present, so the check on every shutdown costs no query.
+		 *
+		 * Shape: { connect_id, urls: { url: added_at }, full, full_at, next_at }.
+		 * added_at / full_at are microtime(true) floats, compared only with a purge's
+		 * sent_at (also microtime) so an entry added during a purge is not cleared by it.
+		 * next_at is whole seconds, compared only with time().
 		 */
 		const PENDING_OPTION = 'instawp_cdn_purge_pending';
 
@@ -81,36 +86,40 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * Constructor.
 		 */
 		public function __construct() {
-			// Not connected, or client-app said the site has no CDN: nothing here can
-			// purge, so no hook is added at all. Both come from instawp_api_options, which
-			// every request reads anyway. The auto-purge toggle is checked when something
-			// is queued, as before, so this adds no query. The static purge methods still work.
-			if ( empty( Helper::get_connect_id() ) || self::is_cdn_disabled() ) {
-				return;
+			try {
+				// Not connected, or client-app said the site has no CDN: nothing here can
+				// purge, so no hook is added at all. Both come from instawp_api_options, which
+				// every request reads anyway. The auto-purge toggle is checked when something
+				// is queued, as before, so this adds no query. The static purge methods still work.
+				if ( empty( Helper::get_connect_id() ) || self::is_cdn_disabled() ) {
+					return;
+				}
+
+				add_action( 'transition_post_status', array( $this, 'handle_post_transition' ), 20, 3 );
+				add_action( 'post_updated', array( $this, 'handle_post_updated' ), 20, 3 );
+				add_action( 'set_object_terms', array( $this, 'handle_object_terms' ), 20, 6 );
+				add_action( 'before_delete_post', array( $this, 'handle_post_delete' ), 20, 2 );
+
+				// This plugin loads before WooCommerce, so class_exists() would be false here.
+				if ( did_action( 'woocommerce_loaded' ) ) {
+					$this->register_woocommerce_hooks();
+				} else {
+					add_action( 'woocommerce_loaded', array( $this, 'register_woocommerce_hooks' ) );
+				}
+
+				add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
+				add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
+				add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
+				// Replacing a plugin/theme by zip upload completes as action=install, not update.
+				add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
+
+				add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
+				// Late, so every other shutdown callback has sent its output before the
+				// response may be finished early.
+				add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( '__construct', $th );
 			}
-
-			add_action( 'transition_post_status', array( $this, 'handle_post_transition' ), 20, 3 );
-			add_action( 'post_updated', array( $this, 'handle_post_updated' ), 20, 3 );
-			add_action( 'set_object_terms', array( $this, 'handle_object_terms' ), 20, 6 );
-			add_action( 'before_delete_post', array( $this, 'handle_post_delete' ), 20, 2 );
-
-			// This plugin loads before WooCommerce, so class_exists() would be false here.
-			if ( did_action( 'woocommerce_loaded' ) ) {
-				$this->register_woocommerce_hooks();
-			} else {
-				add_action( 'woocommerce_loaded', array( $this, 'register_woocommerce_hooks' ) );
-			}
-
-			add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
-			add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
-			add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
-			// Replacing a plugin/theme by zip upload completes as action=install, not update.
-			add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
-
-			add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
-			// Late, so every other shutdown callback has sent its output before the
-			// response may be finished early.
-			add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
 		}
 
 		/**
@@ -136,15 +145,19 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param WP_Post $post       Post object.
 		 */
 		public function handle_post_transition( $new_status, $old_status, $post ) {
-			if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
-				return;
-			}
+			try {
+				if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
+					return;
+				}
 
-			if ( ! $this->is_purgeable_post( $post ) ) {
-				return;
-			}
+				if ( ! $this->is_purgeable_post( $post ) ) {
+					return;
+				}
 
-			$this->queue_post( $post->ID, true );
+				$this->queue_post( $post->ID, true );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_post_transition', $th );
+			}
 		}
 
 		/**
@@ -156,15 +169,19 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param WP_Post $post_before Post object before the update.
 		 */
 		public function handle_post_updated( $post_id, $post_after, $post_before ) {
-			if ( ! $post_before instanceof WP_Post || 'publish' !== $post_before->post_status ) {
-				return;
-			}
+			try {
+				if ( ! $post_before instanceof WP_Post || 'publish' !== $post_before->post_status ) {
+					return;
+				}
 
-			if ( ! $this->is_purgeable_post( $post_before ) ) {
-				return;
-			}
+				if ( ! $this->is_purgeable_post( $post_before ) ) {
+					return;
+				}
 
-			$this->add_url( get_permalink( $post_before ) );
+				$this->add_url( get_permalink( $post_before ) );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_post_updated', $th );
+			}
 		}
 
 		/**
@@ -175,13 +192,17 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param WP_Post $post    Post object.
 		 */
 		public function handle_post_delete( $post_id, $post = null ) {
-			$post = $post instanceof WP_Post ? $post : get_post( $post_id );
-			if ( ! $post || 'publish' !== $post->post_status || ! $this->is_purgeable_post( $post ) ) {
-				return;
-			}
+			try {
+				$post = $post instanceof WP_Post ? $post : get_post( $post_id );
+				if ( ! $post || 'publish' !== $post->post_status || ! $this->is_purgeable_post( $post ) ) {
+					return;
+				}
 
-			foreach ( $this->get_post_urls( $post->ID ) as $url ) {
-				$this->add_url( $url );
+				foreach ( $this->get_post_urls( $post->ID ) as $url ) {
+					$this->add_url( $url );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_post_delete', $th );
 			}
 		}
 
@@ -197,35 +218,39 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array  $old_tt_ids Term taxonomy IDs before the change.
 		 */
 		public function handle_object_terms( $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids ) {
-			$removed = array_diff( array_map( 'intval', (array) $old_tt_ids ), array_map( 'intval', (array) $tt_ids ) );
-			$added   = array_diff( array_map( 'intval', (array) $tt_ids ), array_map( 'intval', (array) $old_tt_ids ) );
-			if ( empty( $removed ) && empty( $added ) ) {
-				return;
-			}
+			try {
+				$removed = array_diff( array_map( 'intval', (array) $old_tt_ids ), array_map( 'intval', (array) $tt_ids ) );
+				$added   = array_diff( array_map( 'intval', (array) $tt_ids ), array_map( 'intval', (array) $old_tt_ids ) );
+				if ( empty( $removed ) && empty( $added ) ) {
+					return;
+				}
 
-			if ( ! $this->is_listed_taxonomy( $taxonomy ) ) {
-				return;
-			}
+				if ( ! $this->is_listed_taxonomy( $taxonomy ) ) {
+					return;
+				}
 
-			$post = get_post( $object_id );
-			if ( ! $post || ! is_object_in_taxonomy( $post->post_type, $taxonomy ) || ! $this->is_purgeable_post( $post ) ) {
-				return;
-			}
+				$post = get_post( $object_id );
+				if ( ! $post || ! is_object_in_taxonomy( $post->post_type, $taxonomy ) || ! $this->is_purgeable_post( $post ) ) {
+					return;
+				}
 
-			// Kept whatever the status: when a save unpublishes a post AND removes a term,
-			// the status is already written by the time terms change. The URLs are used
-			// only if the post is queued (it is published, or was before this save).
-			foreach ( $removed as $tt_id ) {
-				$term = get_term_by( 'term_taxonomy_id', $tt_id, $taxonomy );
-				if ( $term instanceof WP_Term ) {
-					foreach ( $this->get_term_urls( $term ) as $url ) {
-						$this->removed_term_urls[ $post->ID ][ $url ] = true;
+				// Kept whatever the status: when a save unpublishes a post AND removes a term,
+				// the status is already written by the time terms change. The URLs are used
+				// only if the post is queued (it is published, or was before this save).
+				foreach ( $removed as $tt_id ) {
+					$term = get_term_by( 'term_taxonomy_id', $tt_id, $taxonomy );
+					if ( $term instanceof WP_Term ) {
+						foreach ( $this->get_term_urls( $term ) as $url ) {
+							$this->removed_term_urls[ $post->ID ][ $url ] = true;
+						}
 					}
 				}
-			}
 
-			if ( 'publish' === $post->post_status ) {
-				$this->queue_post( $post->ID, true );
+				if ( 'publish' === $post->post_status ) {
+					$this->queue_post( $post->ID, true );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_object_terms', $th );
 			}
 		}
 
@@ -237,7 +262,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param int $product_id Product or variation ID.
 		 */
 		public function handle_product_save( $product_id ) {
-			$this->queue_product( $product_id, ! $this->is_visitor_request() );
+			try {
+				$this->queue_product( $product_id, ! $this->is_visitor_request() );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_product_save', $th );
+			}
 		}
 
 		/**
@@ -247,8 +276,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param WC_Product $product Product or variation.
 		 */
 		public function handle_stock_quantity( $product ) {
-			if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
-				$this->queue_product( $product->get_id(), false );
+			try {
+				if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
+					$this->queue_product( $product->get_id(), false );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_stock_quantity', $th );
 			}
 		}
 
@@ -258,7 +291,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param int $product_id Product or variation ID.
 		 */
 		public function handle_stock_status( $product_id ) {
-			$this->queue_product( $product_id, true );
+			try {
+				$this->queue_product( $product_id, true );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_stock_status', $th );
+			}
 		}
 
 		/**
@@ -306,15 +343,19 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array       $options  Update context: type, action and affected items.
 		 */
 		public function handle_upgrade_complete( $upgrader, $options ) {
-			if ( empty( $options['action'] ) || 'update' !== $options['action'] ) {
-				return;
-			}
+			try {
+				if ( empty( $options['action'] ) || 'update' !== $options['action'] ) {
+					return;
+				}
 
-			if ( empty( $options['type'] ) || ! in_array( $options['type'], array( 'plugin', 'theme', 'core' ), true ) ) {
-				return;
-			}
+				if ( empty( $options['type'] ) || ! in_array( $options['type'], array( 'plugin', 'theme', 'core' ), true ) ) {
+					return;
+				}
 
-			$this->queue_full_purge();
+				$this->queue_full_purge();
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_upgrade_complete', $th );
+			}
 		}
 
 		/**
@@ -324,15 +365,19 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array $results Update results keyed by type.
 		 */
 		public function handle_automatic_updates_complete( $results ) {
-			if ( ! is_array( $results ) ) {
-				return;
-			}
-
-			foreach ( array( 'core', 'plugin', 'theme' ) as $type ) {
-				if ( ! empty( $results[ $type ] ) ) {
-					$this->queue_full_purge();
+			try {
+				if ( ! is_array( $results ) ) {
 					return;
 				}
+
+				foreach ( array( 'core', 'plugin', 'theme' ) as $type ) {
+					if ( ! empty( $results[ $type ] ) ) {
+						$this->queue_full_purge();
+						return;
+					}
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_automatic_updates_complete', $th );
 			}
 		}
 
@@ -342,11 +387,15 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * Coalesced per request, so a bulk update of N items produces one purge.
 		 */
 		public function queue_full_purge() {
-			if ( ! $this->can_purge() ) {
-				return;
-			}
+			try {
+				if ( ! $this->can_purge() ) {
+					return;
+				}
 
-			$this->full_purge_pending = true;
+				$this->full_purge_pending = true;
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'queue_full_purge', $th );
+			}
 		}
 
 		/**
@@ -857,6 +906,25 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
+		 * Log an error raised inside this class and swallow it. Every method WordPress
+		 * calls directly (hook callbacks, the constructor, the entry points used by the
+		 * manual purge, heartbeat, restore and the REST route) catches through here, so
+		 * a bug in the CDN purge can never break a post save, a checkout, an update or
+		 * the request that loaded the plugin.
+		 *
+		 * @param string     $where Method that caught it.
+		 * @param \Throwable $th    What was thrown.
+		 */
+		private static function log_throwable( $where, $th ) {
+			Helper::add_error_log(
+				array(
+					'message' => 'CDN cache purge: ' . $where . ' threw',
+					'error'   => $th->getMessage(),
+				)
+			);
+		}
+
+		/**
 		 * Purge an array of URLs via the client-app API.
 		 *
 		 * @param array $urls URLs to purge.
@@ -894,10 +962,14 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param mixed $response Curl::do_curl() response.
 		 */
 		public static function after_purge( $full, array $urls, $sent_at, $response ) {
-			self::save_cdn_flags_from_response( $response );
+			try {
+				self::save_cdn_flags_from_response( $response );
 
-			if ( is_array( $response ) && ! empty( $response['success'] ) ) {
-				self::clear_covered( $full, $urls, $sent_at );
+				if ( is_array( $response ) && ! empty( $response['success'] ) ) {
+					self::clear_covered( $full, $urls, $sent_at );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'after_purge', $th );
 			}
 		}
 
@@ -931,44 +1003,48 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array $flags Values keyed by flag name.
 		 */
 		public static function save_cdn_flags( array $flags ) {
-			$api_options = Helper::get_options();
-			$api_options = is_array( $api_options ) ? $api_options : array();
-			$changed     = false;
+			try {
+				$api_options = Helper::get_options();
+				$api_options = is_array( $api_options ) ? $api_options : array();
+				$changed     = false;
 
-			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
-				if ( ! isset( $flags[ $key ] ) || ! is_bool( $flags[ $key ] ) ) {
-					continue;
+				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+					if ( ! isset( $flags[ $key ] ) || ! is_bool( $flags[ $key ] ) ) {
+						continue;
+					}
+
+					if ( ! isset( $api_options[ $key ] ) || $api_options[ $key ] !== $flags[ $key ] ) {
+						$api_options[ $key ] = $flags[ $key ];
+						$changed             = true;
+					}
 				}
 
-				if ( ! isset( $api_options[ $key ] ) || $api_options[ $key ] !== $flags[ $key ] ) {
-					$api_options[ $key ] = $flags[ $key ];
-					$changed             = true;
+				if ( ! $changed ) {
+					return;
 				}
-			}
 
-			if ( ! $changed ) {
-				return;
-			}
-
-			// This request's copy may be from before a long purge call; write on a fresh one so
-			// a key or token saved meanwhile is kept. No usable row means the read failed or the
-			// site was disconnected meanwhile: write nothing then. Writing an empty array would
-			// drop the API key, and writing this request's copy could bring back a deleted one.
-			// The flags arrive again with the next heartbeat or purge response.
-			$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
-			if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
-				return;
-			}
-			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
-				if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
-					$fresh[ $key ] = $flags[ $key ];
+				// This request's copy may be from before a long purge call; write on a fresh one so
+				// a key or token saved meanwhile is kept. No usable row means the read failed or the
+				// site was disconnected meanwhile: write nothing then. Writing an empty array would
+				// drop the API key, and writing this request's copy could bring back a deleted one.
+				// The flags arrive again with the next heartbeat or purge response.
+				$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
+				if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
+					return;
 				}
-			}
+				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+					if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
+						$fresh[ $key ] = $flags[ $key ];
+					}
+				}
 
-			Helper::set_settings( $fresh );
+				Helper::set_settings( $fresh );
 
-			if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
-				self::save_pending( self::empty_pending() );
+				if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
+					self::save_pending( self::empty_pending() );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'save_cdn_flags', $th );
 			}
 		}
 
@@ -1048,6 +1124,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * An option's stored value read from the database, bypassing this request's copy.
 		 * The request's cache is updated to match, so update_option() compares against
 		 * what is really stored, whether the option is autoloaded or not.
+		 *
+		 * Deliberately skips the option filters (pre_option_*, option_*): it is used only
+		 * for this class's own pending list and for instawp_api_options right before a
+		 * write, where a stale or filtered copy is the very thing to avoid. It runs only
+		 * on those write paths, never on an ordinary request.
 		 *
 		 * @param string $name Option name.
 		 *
@@ -1131,6 +1212,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param float $sent_at microtime() just before the call.
 		 */
 		private static function clear_covered( $full, array $urls, $sent_at ) {
+			// The cached copy first: nearly every purge finds the list empty, and this
+			// way it costs no query. Only a non-empty list is re-read from the database.
 			$pending = self::get_pending();
 			if ( ! $pending['full'] && empty( $pending['urls'] ) ) {
 				return;

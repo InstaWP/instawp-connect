@@ -203,6 +203,8 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 	 */
 	public function set_cdn_state( WP_REST_Request $request ) {
 
+		// No remote-management toggle on purpose: client-app must always be able to correct
+		// the CDN state, and the route can only set these two booleans.
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
