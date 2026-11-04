@@ -35,6 +35,17 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		const DEFERRED_HOOK = 'instawp_cdn_purge_deferred';
 
 		/**
+		 * Option holding purges that failed and are retried later. Autoloaded and
+		 * always present, so the check on every shutdown costs no query.
+		 */
+		const PENDING_OPTION = 'instawp_cdn_purge_pending';
+
+		/**
+		 * Seconds to wait before a failed purge is retried on its own.
+		 */
+		const RETRY_DELAY = 300;
+
+		/**
 		 * Posts changed during the current request, keyed by post ID. The value says
 		 * whether the post's listing pages are purged too (true), or only its own URL
 		 * (false, a stock quantity change from a checkout).
@@ -70,19 +81,23 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * Constructor.
 		 */
 		public function __construct() {
+			// Not connected, auto-purge off, or the site has no CDN: nothing here can
+			// purge, so no hook is added at all. The static purge methods still work.
+			if ( ! $this->can_purge() ) {
+				return;
+			}
+
 			add_action( 'transition_post_status', array( $this, 'handle_post_transition' ), 20, 3 );
 			add_action( 'post_updated', array( $this, 'handle_post_updated' ), 20, 3 );
 			add_action( 'set_object_terms', array( $this, 'handle_object_terms' ), 20, 6 );
 			add_action( 'before_delete_post', array( $this, 'handle_post_delete' ), 20, 2 );
 
-			// WooCommerce writes that do not go through a post status transition:
-			// stock changes from orders, REST/CSV imports, scheduled sales, quick edit.
-			add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
-			add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
-			add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
-			add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
-			add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
-			add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+			// This plugin loads before WooCommerce, so class_exists() would be false here.
+			if ( did_action( 'woocommerce_loaded' ) ) {
+				$this->register_woocommerce_hooks();
+			} else {
+				add_action( 'woocommerce_loaded', array( $this, 'register_woocommerce_hooks' ) );
+			}
 
 			add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
 			add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
@@ -94,6 +109,20 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			// Late, so every other shutdown callback has sent its output before the
 			// response may be finished early.
 			add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
+		}
+
+		/**
+		 * WooCommerce writes that do not go through a post status transition:
+		 * stock changes from orders, REST/CSV imports, scheduled sales, quick edit.
+		 * Runs only when WooCommerce is active.
+		 */
+		public function register_woocommerce_hooks() {
+			add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
+			add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
+			add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+			add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+			add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+			add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
 		}
 
 		/**
@@ -325,6 +354,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * posts add up to more URLs than one call accepts, else one URL purge.
 		 * The response is finished first (PHP-FPM/LiteSpeed), so nobody waits for the
 		 * purge call; without that, a visitor's purge goes to WP-Cron instead.
+		 *
+		 * Purges that failed earlier (the pending list) go out with this request's
+		 * purge. With nothing new to purge, the pending list is sent on its own once
+		 * it is due, but only where nobody waits for it.
 		 */
 		public function flush_pending_purges() {
 			try {
@@ -336,13 +369,23 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				$this->removed_term_urls  = array();
 				$this->pending_urls       = array();
 
-				if ( null === $urls || count( $urls ) > self::MAX_URLS ) {
-					$full = true;
-					$urls = array();
+				$pending = self::get_pending();
+
+				if ( ! $full && is_array( $urls ) && empty( $urls ) ) {
+					$this->retry_pending( $pending );
+
+					return;
 				}
 
-				if ( ! $full && empty( $urls ) ) {
-					return;
+				if ( $pending['full'] ) {
+					$full = true;
+				} elseif ( ! $full && is_array( $urls ) && ! empty( $pending['urls'] ) ) {
+					$urls = array_values( array_unique( array_merge( $urls, array_keys( $pending['urls'] ) ) ) );
+				}
+
+				if ( $full || null === $urls || count( $urls ) > self::MAX_URLS ) {
+					$full = true;
+					$urls = array();
 				}
 
 				// WP-CLI and cron have no one waiting on a response.
@@ -377,6 +420,36 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					)
 				);
 			}
+		}
+
+		/**
+		 * Send the pending list on its own when it is due and nobody waits for it.
+		 * A request that cannot finish its response early leaves it for a later one.
+		 *
+		 * @param array $pending Pending list from get_pending().
+		 */
+		private function retry_pending( array $pending ) {
+			if ( ! self::is_pending_due( $pending ) ) {
+				return;
+			}
+
+			$no_one_waits = ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron();
+			if ( ! $no_one_waits && ! $this->finish_request() ) {
+				return;
+			}
+
+			// Claim it first, so a request running at the same time skips it. Re-read it,
+			// as another request may have sent or claimed it since this one started.
+			$pending = self::get_pending_fresh();
+			if ( ! self::is_pending_due( $pending ) ) {
+				return;
+			}
+
+			$pending['next_at'] = time() + self::RETRY_DELAY;
+			self::save_pending( $pending );
+
+			$full = $pending['full'] || count( $pending['urls'] ) > self::MAX_URLS;
+			$this->send( $full, $full ? array() : array_keys( $pending['urls'] ) );
 		}
 
 		/**
@@ -446,48 +519,54 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array $urls URLs to purge when not a full purge.
 		 */
 		private function send( $full, array $urls ) {
-			if ( $full ) {
-				$this->flush_full_purge();
+			$response = $full ? instawp_purge_cdn_cache() : self::purge_urls( $urls );
 
+			if ( is_array( $response ) && ! empty( $response['success'] ) ) {
 				return;
 			}
 
-			$response = self::purge_urls( $urls );
-			if ( $response && ! empty( $response['success'] ) ) {
-				return;
-			}
+			// Not retried now: a rate limit or a busy server needs time, and a timed-out
+			// call is usually still being worked through. It goes out with the next purge,
+			// or on its own after RETRY_DELAY.
+			if ( self::is_retryable( $response ) ) {
+				self::add_pending( $full, $urls );
 
-			// Retry once, but not after a timeout: the server is usually still working
-			// through the first call, and a second one only doubles its load.
-			if ( ! $this->is_timeout( $response ) ) {
-				$response = self::purge_urls( $urls );
-				if ( $response && ! empty( $response['success'] ) ) {
-					return;
-				}
+				return;
 			}
 
 			Helper::add_error_log(
 				array(
-					'message' => 'CDN cache purge failed',
-					'error'   => is_array( $response ) && isset( $response['message'] ) ? $response['message'] : '',
+					'message' => $full ? 'CDN full cache purge failed' : 'CDN cache purge failed',
+					'error'   => is_wp_error( $response ) ? $response->get_error_message() : ( is_array( $response ) && isset( $response['message'] ) ? $response['message'] : '' ),
+					'code'    => is_array( $response ) && isset( $response['code'] ) ? $response['code'] : '',
 					'urls'    => $urls,
 				)
 			);
 		}
 
 		/**
-		 * Whether a purge response is an HTTP timeout (cURL error 28).
+		 * Whether a failed purge is worth retrying later: a rate limit (429), a server
+		 * error (5xx), or no HTTP response at all (timeout, connection error). Any other
+		 * 4xx fails the same way every time.
 		 *
-		 * @param mixed $response Response from purge_urls().
+		 * @param mixed $response Response from purge_urls() or instawp_purge_cdn_cache().
 		 *
 		 * @return bool
 		 */
-		private function is_timeout( $response ) {
-			if ( ! is_array( $response ) || empty( $response['message'] ) || ! is_string( $response['message'] ) ) {
+		private static function is_retryable( $response ) {
+			if ( ! is_array( $response ) ) {
 				return false;
 			}
 
-			return false !== stripos( $response['message'], 'cURL error 28' ) || false !== stripos( $response['message'], 'timed out' );
+			$code = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
+
+			// No HTTP code also means the call was never made (no API key or domain);
+			// that does not fix itself.
+			if ( 0 === $code ) {
+				return ! empty( Helper::get_api_key() ) && ! empty( Helper::get_api_domain() );
+			}
+
+			return 429 === $code || 500 <= $code;
 		}
 
 		/**
@@ -772,32 +851,6 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Purge the whole CDN cache. Runs on shutdown, so a failure is logged and
-		 * swallowed: it must never break the request that triggered it.
-		 */
-		private function flush_full_purge() {
-			try {
-				$response = instawp_purge_cdn_cache();
-
-				if ( is_wp_error( $response ) || empty( $response['success'] ) ) {
-					Helper::add_error_log(
-						array(
-							'message'  => 'CDN full cache purge failed',
-							'response' => is_wp_error( $response ) ? $response->get_error_message() : $response,
-						)
-					);
-				}
-			} catch ( \Throwable $th ) {
-				Helper::add_error_log(
-					array(
-						'message' => 'CDN full cache purge threw',
-						'error'   => $th->getMessage(),
-					)
-				);
-			}
-		}
-
-		/**
 		 * Purge an array of URLs via the client-app API.
 		 *
 		 * @param array $urls URLs to purge.
@@ -816,7 +869,254 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return false;
 			}
 
-			return Curl::do_curl( "connects/{$connect_id}/purge-cache-urls", array( 'urls' => $urls ) );
+			$sent_at  = microtime( true );
+			$response = Curl::do_curl( "connects/{$connect_id}/purge-cache-urls", array( 'urls' => $urls ) );
+
+			self::after_purge( false, $urls, $sent_at, $response );
+
+			return $response;
+		}
+
+		/**
+		 * Bookkeeping after any purge call (auto, full, manual, WP-CLI): keep the CDN
+		 * flag in step with what client-app reports, and drop from the pending list
+		 * what a successful purge covered.
+		 *
+		 * @param bool  $full     Whether it was a full purge.
+		 * @param array $urls     URLs sent, for a URL purge.
+		 * @param float $sent_at  microtime() just before the call.
+		 * @param mixed $response Curl::do_curl() response.
+		 */
+		public static function after_purge( $full, array $urls, $sent_at, $response ) {
+			self::save_cdn_flags_from_response( $response );
+
+			if ( is_array( $response ) && ! empty( $response['success'] ) ) {
+				self::clear_covered( $full, $urls, $sent_at );
+			}
+		}
+
+		/**
+		 * Whether client-app has said this site has no CDN. Unknown counts as on.
+		 *
+		 * @return bool
+		 */
+		public static function is_cdn_disabled() {
+			$api_options = Helper::get_options();
+
+			return is_array( $api_options ) && isset( $api_options['cdn_enabled'] ) && false === $api_options['cdn_enabled'];
+		}
+
+		/**
+		 * Save the CDN flags client-app sent in a response's data, if any.
+		 *
+		 * @param mixed $response Curl::do_curl() response.
+		 */
+		public static function save_cdn_flags_from_response( $response ) {
+			if ( is_array( $response ) && ! empty( $response['data'] ) && is_array( $response['data'] ) ) {
+				self::save_cdn_flags( $response['data'] );
+			}
+		}
+
+		/**
+		 * Save cdn_enabled / is_insta_site into instawp_api_options. Only explicit
+		 * booleans are taken, and the option is written only when a value changes.
+		 * A site whose CDN turns off also loses its pending list.
+		 *
+		 * @param array $flags Values keyed by flag name.
+		 */
+		public static function save_cdn_flags( array $flags ) {
+			$api_options = Helper::get_options();
+			$api_options = is_array( $api_options ) ? $api_options : array();
+			$changed     = false;
+
+			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+				if ( ! isset( $flags[ $key ] ) || ! is_bool( $flags[ $key ] ) ) {
+					continue;
+				}
+
+				if ( ! isset( $api_options[ $key ] ) || $api_options[ $key ] !== $flags[ $key ] ) {
+					$api_options[ $key ] = $flags[ $key ];
+					$changed             = true;
+				}
+			}
+
+			if ( ! $changed ) {
+				return;
+			}
+
+			Helper::set_settings( $api_options );
+
+			if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
+				self::save_pending( self::empty_pending() );
+			}
+		}
+
+		/**
+		 * An empty pending list.
+		 *
+		 * @return array
+		 */
+		private static function empty_pending() {
+			return array(
+				'connect_id' => 0,
+				'urls'       => array(),
+				'full'       => false,
+				'full_at'    => 0,
+				'next_at'    => 0,
+			);
+		}
+
+		/**
+		 * A stored pending list in its expected shape. A list saved under another
+		 * connect ID (a reconnect, a staging copy, a migrated site) counts as empty.
+		 *
+		 * @param mixed $value Stored value.
+		 *
+		 * @return array
+		 */
+		private static function normalize_pending( $value ) {
+			$empty = self::empty_pending();
+			if ( ! is_array( $value ) || empty( $value['connect_id'] ) || (int) $value['connect_id'] !== (int) Helper::get_connect_id() ) {
+				return $empty;
+			}
+
+			$pending         = array_merge( $empty, array_intersect_key( $value, $empty ) );
+			$pending['urls'] = is_array( $pending['urls'] ) ? $pending['urls'] : array();
+			$pending['full'] = ! empty( $pending['full'] );
+
+			return $pending;
+		}
+
+		/**
+		 * The pending list, from this request's option cache. Creates the option on
+		 * first use, autoloaded, so later reads cost no query.
+		 *
+		 * @return array
+		 */
+		private static function get_pending() {
+			$value = get_option( self::PENDING_OPTION, false );
+
+			if ( false === $value ) {
+				add_option( self::PENDING_OPTION, self::empty_pending(), '', 'yes' );
+				// Debounce data from the previous version of this class.
+				delete_option( 'instawp_cdn_purge_queue' );
+
+				return self::empty_pending();
+			}
+
+			return self::normalize_pending( $value );
+		}
+
+		/**
+		 * The pending list as stored right now. Another request may have changed it
+		 * since this one loaded its options, so it is read from the database, and the
+		 * request's cache is updated so update_option() compares against it.
+		 *
+		 * @return array
+		 */
+		private static function get_pending_fresh() {
+			global $wpdb;
+
+			$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::PENDING_OPTION ) );
+			if ( null === $raw ) {
+				return self::get_pending();
+			}
+
+			$alloptions = wp_load_alloptions();
+			if ( isset( $alloptions[ self::PENDING_OPTION ] ) ) {
+				$alloptions[ self::PENDING_OPTION ] = $raw;
+				wp_cache_set( 'alloptions', $alloptions, 'options' );
+			} else {
+				wp_cache_set( self::PENDING_OPTION, $raw, 'options' );
+			}
+
+			return self::normalize_pending( maybe_unserialize( $raw ) );
+		}
+
+		/**
+		 * Store the pending list under the current connect ID, keeping it autoloaded.
+		 *
+		 * @param array $pending Pending list.
+		 */
+		private static function save_pending( array $pending ) {
+			$pending['connect_id'] = (int) Helper::get_connect_id();
+
+			update_option( self::PENDING_OPTION, $pending, true );
+		}
+
+		/**
+		 * Whether the pending list has something to send and its wait is over.
+		 *
+		 * @param array $pending Pending list.
+		 *
+		 * @return bool
+		 */
+		private static function is_pending_due( array $pending ) {
+			return ( $pending['full'] || ! empty( $pending['urls'] ) ) && time() >= (int) $pending['next_at'];
+		}
+
+		/**
+		 * Add a failed purge to the pending list, to be retried after RETRY_DELAY or
+		 * with the next purge, whichever comes first.
+		 *
+		 * @param bool  $full Whether it was a full purge.
+		 * @param array $urls URLs, for a URL purge.
+		 */
+		private static function add_pending( $full, array $urls ) {
+			$pending = self::get_pending_fresh();
+			$now     = microtime( true );
+
+			if ( $full ) {
+				$pending['full']    = true;
+				$pending['full_at'] = $now;
+			} else {
+				foreach ( $urls as $url ) {
+					$pending['urls'][ $url ] = $now;
+				}
+			}
+
+			$pending['next_at'] = time() + self::RETRY_DELAY;
+
+			self::save_pending( $pending );
+		}
+
+		/**
+		 * Remove from the pending list what a successful purge covered: entries added
+		 * before it was sent (all of them for a full purge, the URLs it sent for a URL
+		 * purge). An entry added while it was in flight stays.
+		 *
+		 * @param bool  $full    Whether it was a full purge.
+		 * @param array $urls    URLs sent, for a URL purge.
+		 * @param float $sent_at microtime() just before the call.
+		 */
+		private static function clear_covered( $full, array $urls, $sent_at ) {
+			$pending = self::get_pending();
+			if ( ! $pending['full'] && empty( $pending['urls'] ) ) {
+				return;
+			}
+
+			$pending = self::get_pending_fresh();
+			$before  = $pending;
+			$covered = $full ? array_keys( $pending['urls'] ) : $urls;
+
+			foreach ( $covered as $url ) {
+				if ( isset( $pending['urls'][ $url ] ) && (float) $pending['urls'][ $url ] <= $sent_at ) {
+					unset( $pending['urls'][ $url ] );
+				}
+			}
+
+			if ( $full && $pending['full'] && (float) $pending['full_at'] <= $sent_at ) {
+				$pending['full']    = false;
+				$pending['full_at'] = 0;
+			}
+
+			if ( ! $pending['full'] && empty( $pending['urls'] ) ) {
+				$pending['next_at'] = 0;
+			}
+
+			if ( $pending !== $before ) {
+				self::save_pending( $pending );
+			}
 		}
 
 		/**
@@ -831,12 +1131,13 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Whether auto-purge is on and the site is connected.
+		 * Whether auto-purge is on, the site is connected, and client-app has not said
+		 * the site has no CDN.
 		 *
 		 * @return bool
 		 */
 		private function can_purge() {
-			return $this->is_auto_purge_enabled() && ! empty( Helper::get_connect_id() );
+			return $this->is_auto_purge_enabled() && ! empty( Helper::get_connect_id() ) && ! self::is_cdn_disabled();
 		}
 
 		/**

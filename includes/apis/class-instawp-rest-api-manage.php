@@ -26,6 +26,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/cdn', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'set_cdn_state' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/inventory', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_inventory' ),
@@ -184,6 +190,44 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		return $this->send_response( array(
 			'success' => isset( $result['success'] ) && $result['success'],
 			'message' => $result['message'] ?? __( 'CDN cache purge request sent.', 'instawp-connect' ),
+		) );
+	}
+
+	/**
+	 * Set the site's CDN state. Called by client-app when a plan change turns the
+	 * CDN on, so a site that had stored "no CDN" starts auto-purging again.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_cdn_state( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$flags = array();
+		foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+			$value = $request->get_param( $key );
+			if ( null !== $value ) {
+				$flags[ $key ] = rest_sanitize_boolean( $value );
+			}
+		}
+
+		if ( ! isset( $flags['cdn_enabled'] ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'cdn_enabled is required.', 'instawp-connect' ),
+			) );
+		}
+
+		InstaWP_CDN_Cache_Purge::save_cdn_flags( $flags );
+
+		return $this->send_response( array(
+			'success' => true,
+			'message' => __( 'CDN state saved.', 'instawp-connect' ),
 		) );
 	}
 

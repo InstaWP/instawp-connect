@@ -2,7 +2,23 @@
 
 `includes/class-instawp-cdn-cache-purge.php` clears the InstaWP CDN (Bunny) cache when site content
 changes, so visitors never keep seeing an old page. It is on by default and controlled by the
-`instawp_cdn_auto_purge` option (`on` / `off`). It does nothing on a site that is not connected.
+`instawp_cdn_auto_purge` option (`on` / `off`).
+
+## When it runs at all
+
+The class adds no hooks at all unless all three hold:
+
+- the site is connected (`connect_id` in `instawp_api_options`);
+- auto-purge is on;
+- `cdn_enabled` in `instawp_api_options` is not `false`. A missing value counts as on.
+
+`cdn_enabled` and `is_insta_site` come from client-app: the connect and restore responses, every
+purge response (`data.cdn_enabled`), and the `POST v2/manage/cdn` route client-app calls when a plan
+change turns the CDN on. Only an explicit boolean is saved. A connected site without CDN therefore
+stops calling client-app after its first answer. The WooCommerce hooks are added from
+`woocommerce_loaded`, so only when WooCommerce is active. `InstaWP_CDN_Cache_Purge::purge_url()`
+(WP-CLI) and the admin "Purge InstaCDN" button work whatever the flag says; a successful manual
+purge sets it back to on.
 
 ## What triggers a purge
 
@@ -31,8 +47,23 @@ Drafts and other unpublished content never trigger a purge.
 A typical product save is about 8-10 URLs. All of it goes out as one call per request to
 `connects/{id}/purge-cache-urls`. The URLs are purged one by one server-side (about 1-4 s each), so a
 set larger than 20 (a bulk edit, an import batch) is sent as one full purge
-(`connects/{id}/purge-cache`) instead. A purge that times out is not retried, since the server is
-usually still working through it.
+(`connects/{id}/purge-cache`) instead.
+
+## A failed purge is retried later
+
+A purge is not retried straight away. When it fails with a 429, a 5xx, a timeout or a connection
+error, its URLs (or a "full purge" marker) go into the `instawp_cdn_purge_pending` option
+(autoloaded, so checking it costs no query):
+
+- the next purge on the site sends them along with its own URLs (more than 20 together becomes one
+  full purge);
+- with nothing new to purge, they are sent on their own at shutdown once 5 minutes have passed, but
+  only where nobody waits for it (PHP-FPM/LiteSpeed finish the response first, or WP-CLI/cron). The
+  request claims the list before sending, so two requests at once send it once.
+
+A successful purge removes what it covered (a full purge: everything) that was added before it was
+sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx is dropped. The list
+is ignored when it was saved under another connect ID (reconnect, staging copy, migrated site).
 
 ## Nobody waits for the purge
 

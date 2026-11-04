@@ -69,6 +69,7 @@ delete_option( 'instawp_default_user' );
 delete_option( 'instawp_api_options' );
 delete_option( 'instawp_rm_heartbeat' );
 delete_option( 'instawp_cdn_purge_queue' );
+delete_option( 'instawp_cdn_purge_pending' );
 delete_option( 'instawp_api_heartbeat' );
 delete_option( 'instawp_rm_file_manager' );
 delete_option( 'instawp_migration_details' );
