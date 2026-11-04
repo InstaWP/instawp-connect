@@ -225,7 +225,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			) );
 		}
 
-		InstaWP_CDN_Cache_Purge::save_cdn_flags( $flags );
+		if ( ! InstaWP_CDN_Cache_Purge::save_cdn_flags( $flags ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'CDN state could not be saved.', 'instawp-connect' ),
+			) );
+		}
 
 		return $this->send_response( array(
 			'success' => true,

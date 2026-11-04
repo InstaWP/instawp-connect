@@ -128,12 +128,16 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * Runs only when WooCommerce is active.
 		 */
 		public function register_woocommerce_hooks() {
-			add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
-			add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
-			add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
-			add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
-			add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
-			add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+			try {
+				add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
+				add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
+				add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+				add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+				add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+				add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'register_woocommerce_hooks', $th );
+			}
 		}
 
 		/**
@@ -464,12 +468,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				$this->send( $full, $urls );
 			} catch ( \Throwable $th ) {
-				Helper::add_error_log(
-					array(
-						'message' => 'CDN cache purge threw',
-						'error'   => $th->getMessage(),
-					)
-				);
+				self::log_throwable( 'flush_pending_purges', $th );
 			}
 		}
 
@@ -527,12 +526,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				$this->send( $full, $urls );
 			} catch ( \Throwable $th ) {
-				Helper::add_error_log(
-					array(
-						'message' => 'Deferred CDN cache purge threw',
-						'error'   => $th->getMessage(),
-					)
-				);
+				self::log_throwable( 'handle_deferred_purge', $th );
 			}
 		}
 
@@ -920,7 +914,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				array(
 					'message' => 'CDN cache purge: ' . $where . ' threw',
 					'error'   => $th->getMessage(),
-				)
+				),
+				$th
 			);
 		}
 
@@ -1001,6 +996,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * A site whose CDN turns off also loses its pending list.
 		 *
 		 * @param array $flags Values keyed by flag name.
+		 *
+		 * @return bool True when the stored flags now match (written, or already so);
+		 *              false when nothing could be written (no usable row, or an error).
 		 */
 		public static function save_cdn_flags( array $flags ) {
 			try {
@@ -1020,7 +1018,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				}
 
 				if ( ! $changed ) {
-					return;
+					return true;
 				}
 
 				// This request's copy may be from before a long purge call; write on a fresh one so
@@ -1030,7 +1028,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				// The flags arrive again with the next heartbeat or purge response.
 				$fresh = maybe_unserialize( self::read_option_fresh( 'instawp_api_options' ) );
 				if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
-					return;
+					return false;
 				}
 				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
 					if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
@@ -1043,8 +1041,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
 					self::save_pending( self::empty_pending() );
 				}
+
+				return true;
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'save_cdn_flags', $th );
+
+				return false;
 			}
 		}
 
