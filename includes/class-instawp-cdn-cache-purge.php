@@ -88,6 +88,15 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private $pending_urls = array();
 
 		/**
+		 * Products whose stock WooCommerce is changing in this request, keyed by ID: the
+		 * quantity before the change (from the before_set_stock hooks). A variation also
+		 * marks its parent, which WooCommerce re-saves at shutdown to sync it.
+		 *
+		 * @var array
+		 */
+		private $stock_changes = array();
+
+		/**
 		 * Whether a full CDN purge was requested during the current request.
 		 *
 		 * @var bool
@@ -142,6 +151,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function register_woocommerce_hooks() {
 			try {
+				add_action( 'woocommerce_product_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
+				add_action( 'woocommerce_variation_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
 				add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
 				add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
 				add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
@@ -272,10 +283,36 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
+		 * WooCommerce is about to change a product's stock (wc_update_product_stock(),
+		 * every sale). Remember it, with the quantity before the change, so its saves in
+		 * this request are left to the stock hooks.
+		 *
+		 * @param WC_Product $product Product or variation whose stock is changing.
+		 */
+		public function handle_before_set_stock( $product ) {
+			try {
+				if ( ! is_object( $product ) || ! method_exists( $product, 'get_id' ) ) {
+					return;
+				}
+
+				$this->stock_changes[ (int) $product->get_id() ] = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
+
+				// WooCommerce re-saves the parent of a variation at shutdown to sync it.
+				$parent_id = method_exists( $product, 'get_parent_id' ) ? (int) $product->get_parent_id() : 0;
+				if ( $parent_id && ! array_key_exists( $parent_id, $this->stock_changes ) ) {
+					$this->stock_changes[ $parent_id ] = null;
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_before_set_stock', $th );
+			}
+		}
+
+		/**
 		 * A WooCommerce product save outside the editor (REST, import, scheduled sale).
-		 * A checkout also saves every product it sells; in a visitor's request that save
-		 * is a stock quantity change, handled by the store's stock display setting. A
-		 * visitor's save of a product that does not manage stock purges its own URL.
+		 * A checkout also saves every product it sells, and the parent of every variation
+		 * it sells: in a visitor's request those saves are left to the stock hooks
+		 * (handle_stock_quantity / handle_stock_status). Any other visitor save (e.g. an
+		 * approved review updating the rating) purges the product's own URL.
 		 *
 		 * @param int $product_id Product or variation ID.
 		 */
@@ -287,10 +324,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					return;
 				}
 
-				$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
-				if ( $product && method_exists( $product, 'managing_stock' ) && $product->managing_stock() ) {
-					$this->handle_quantity_change( $product );
-
+				if ( array_key_exists( absint( $product_id ), $this->stock_changes ) ) {
 					return;
 				}
 
@@ -322,8 +356,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * shopper actually sees on the product page:
 		 *
 		 * - never show the quantity: nothing to purge;
-		 * - only show it when low: purge now if it is at or below the product's
-		 *   low-stock threshold (WooCommerce's own, per product or store-wide);
+		 * - only show it when low: purge now if it is, or was before this change, at or
+		 *   below the product's low-stock threshold (WooCommerce's own, per product or
+		 *   store-wide), so a restock also clears an "Only N left";
 		 * - always show it (WooCommerce's default): add the product to the daily list.
 		 *
 		 * A stock status change (in/out of stock) is handled by handle_stock_status()
@@ -339,7 +374,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			} elseif ( 'low_amount' === $format ) {
 				$quantity  = method_exists( $product, 'get_stock_quantity' ) ? $product->get_stock_quantity() : null;
 				$threshold = function_exists( 'wc_get_low_stock_amount' ) ? wc_get_low_stock_amount( $product ) : (int) get_option( 'woocommerce_notify_low_stock_amount', 2 );
-				$action    = ( null !== $quantity && (int) $quantity <= (int) $threshold ) ? 'now' : 'none';
+				$before    = isset( $this->stock_changes[ (int) $product->get_id() ] ) ? $this->stock_changes[ (int) $product->get_id() ] : null;
+				$low_now   = null !== $quantity && (int) $quantity <= (int) $threshold;
+				$low_then  = null !== $before && (int) $before <= (int) $threshold;
+				$action    = ( $low_now || $low_then ) ? 'now' : 'none';
 			} else {
 				$action = 'daily';
 			}
@@ -356,7 +394,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			if ( 'now' === $action ) {
 				$this->queue_product( $product->get_id(), false );
-			} elseif ( 'daily' === $action ) {
+			} elseif ( 'daily' === $action && $this->can_purge() ) {
 				self::add_to_daily_stock( $product->get_id() );
 			}
 		}
@@ -1166,6 +1204,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
 					self::save_pending( self::empty_pending() );
 					update_option( self::STOCK_DAILY_OPTION, array(), true );
+					wp_clear_scheduled_hook( self::STOCK_DAILY_HOOK );
 				}
 
 				return true;

@@ -53,6 +53,16 @@ Stock display format**, and a quantity change purges accordingly:
 | Only show quantity remaining when low | The product's page is purged at once if the new quantity is at or below the product's low-stock threshold (WooCommerce's own, `wc_get_low_stock_amount()`), else nothing |
 | Always show quantity remaining (the default) | The product goes on a daily list (`instawp_cdn_stock_daily`); one WP-Cron run (`instawp_cdn_stock_daily_purge`), scheduled when the first product is added, purges every listed product's page. More than 20 products is one full purge |
 
+For "only when low", the quantity before the change counts too, so a restock clears an
+"Only N left". A sale's own product saves (and WooCommerce's re-save of a variation's parent) are
+left to this rule; any other save in a shopper's request, such as an approved review, purges the
+product's page as before.
+
+The daily list is read and written without a lock, so two checkouts at the same moment can drop
+one product from it. That product's page then shows the old quantity until it sells again or the
+CDN copy expires; checkout always checks real stock. Without WP-Cron (`DISABLE_WP_CRON` and no
+system cron) the daily run never fires.
+
 A stock status change (in stock / out of stock) always purges the product and its listings at once,
 in every mode. A variation counts as its parent product. A theme that shows the quantity differently
 can override the decision:
