@@ -100,6 +100,15 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private $stock_changes = array();
 
 		/**
+		 * What each WooCommerce product save in this request changed, keyed by ID
+		 * (from woocommerce_before_*_object_save). Lets a save that only carries a stock
+		 * change be told apart from a real edit made in the same save.
+		 *
+		 * @var array
+		 */
+		private $save_changes = array();
+
+		/**
 		 * Parents of variations whose stock changed in this request, keyed by ID.
 		 * WooCommerce re-saves them at shutdown (priority 10) to sync them; the marks are
 		 * cleared right after that (priority 11).
@@ -164,6 +173,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function register_woocommerce_hooks() {
 			try {
+				add_action( 'woocommerce_before_product_object_save', array( $this, 'handle_before_object_save' ), 20 );
+				add_action( 'woocommerce_before_product_variation_object_save', array( $this, 'handle_before_object_save' ), 20 );
 				add_action( 'woocommerce_product_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
 				add_action( 'woocommerce_variation_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
 				add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
@@ -338,42 +349,72 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * A WooCommerce product save outside the editor (REST, import, scheduled sale).
-		 * A checkout also saves every product it sells, and the parent of every variation
-		 * it sells: in a visitor's request those saves are left to the stock hooks
-		 * (handle_stock_quantity / handle_stock_status). Any other visitor save (e.g. an
-		 * approved review updating the rating) purges the product's own URL.
+		 * WooCommerce is about to save a product: remember which fields the save changes.
+		 *
+		 * @param WC_Product $product Product or variation being saved.
+		 */
+		public function handle_before_object_save( $product ) {
+			try {
+				if ( is_object( $product ) && method_exists( $product, 'get_id' ) && method_exists( $product, 'get_changes' ) ) {
+					$this->save_changes[ (int) $product->get_id() ] = array_keys( (array) $product->get_changes() );
+				}
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'handle_before_object_save', $th );
+			}
+		}
+
+		/**
+		 * A WooCommerce product save outside the editor (REST, import, scheduled sale,
+		 * stock sync, checkout). A save that only carries a stock change (a sale, a
+		 * restock, an inventory sync, and the parent re-sync of a sold variation) is left
+		 * to the stock hooks (handle_stock_quantity / handle_stock_status), in every
+		 * context. Any other save purges the product and its listings, or only its own
+		 * URL in a visitor's request (e.g. an approved review updating the rating).
 		 *
 		 * @param int $product_id Product or variation ID.
 		 */
 		public function handle_product_save( $product_id ) {
 			try {
-				if ( ! $this->is_visitor_request() ) {
-					$this->queue_product( $product_id, true );
-
-					return;
-				}
-
 				$product_id = absint( $product_id );
-				if ( isset( $this->stock_sync_parents[ $product_id ] ) ) {
-					return;
-				}
+				$stock_only = $this->is_stock_only_save( $product_id );
+				unset( $this->save_changes[ $product_id ] );
 
 				if ( isset( $this->stock_changes[ $product_id ] ) ) {
-					// The sale's own save: skipped. If set_stock already ran, the change is over.
+					// The stock change's own save. If set_stock already ran, the change is over.
 					if ( $this->stock_changes[ $product_id ]['done'] ) {
 						unset( $this->stock_changes[ $product_id ] );
 					} else {
 						$this->stock_changes[ $product_id ]['saved'] = true;
 					}
 
+					if ( $stock_only ) {
+						return;
+					}
+				} elseif ( isset( $this->stock_sync_parents[ $product_id ] ) && $stock_only ) {
 					return;
 				}
 
-				$this->queue_product( $product_id, false );
+				$this->queue_product( $product_id, ! $this->is_visitor_request() );
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_product_save', $th );
 			}
+		}
+
+		/**
+		 * Whether a product's save changes nothing but its stock. A save WooCommerce did
+		 * not announce (no before_object_save seen) counts as stock-only, which is what a
+		 * marked product's save is.
+		 *
+		 * @param int $product_id Product or variation ID.
+		 *
+		 * @return bool
+		 */
+		private function is_stock_only_save( $product_id ) {
+			if ( ! isset( $this->save_changes[ $product_id ] ) ) {
+				return true;
+			}
+
+			return array() === array_diff( $this->save_changes[ $product_id ], array( 'stock_quantity', 'stock_status', 'date_modified' ) );
 		}
 
 		/**
@@ -427,6 +468,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param WC_Product $product Product or variation.
 		 */
 		private function handle_quantity_change( $product ) {
+			if ( self::is_switched_blog() ) {
+				return;
+			}
+
 			$format = get_option( 'woocommerce_stock_format', '' );
 
 			if ( 'no_amount' === $format ) {
@@ -475,7 +520,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			$list = get_option( self::STOCK_DAILY_OPTION, array() );
+			// Read from the database, not this request's copy, so a product another checkout
+			// added since this request started is kept.
+			$raw  = self::read_option_fresh( self::STOCK_DAILY_OPTION );
+			$list = null === $raw ? array() : maybe_unserialize( $raw );
 			$list = is_array( $list ) ? $list : array();
 
 			// Past MAX_URLS products the daily run is one full purge, so more IDs add nothing.
@@ -668,7 +716,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			if ( ! wp_doing_cron() && ! $this->finish_request() ) {
+			if ( ! wp_doing_cron() && ! $this->can_finish_request() ) {
 				return;
 			}
 
@@ -681,6 +729,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			$pending['next_at'] = time() + self::RETRY_DELAY;
 			self::save_pending( $pending );
+
+			// Only the request that claimed it finishes its response early.
+			if ( ! wp_doing_cron() ) {
+				$this->finish_request();
+			}
 
 			$full = $pending['full'] || count( $pending['urls'] ) > self::MAX_URLS;
 			$this->send( $full, $full ? array() : array_keys( $pending['urls'] ) );
@@ -811,15 +864,34 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				session_write_close();
 			}
 
+			if ( ! $this->can_finish_request() ) {
+				return false;
+			}
+
+			// false only means another shutdown callback (e.g. WooCommerce's deferred
+			// emails) already finished the response: nobody is waiting either way.
 			if ( function_exists( 'fastcgi_finish_request' ) ) {
-				return (bool) fastcgi_finish_request();
+				fastcgi_finish_request();
+			} else {
+				litespeed_finish_request();
 			}
 
-			if ( function_exists( 'litespeed_finish_request' ) ) {
-				return (bool) litespeed_finish_request();
+			return true;
+		}
+
+		/**
+		 * Whether the response can be finished early in this request (PHP-FPM or
+		 * LiteSpeed). On PHP-FPM, only from PHP 7.0.16, as WordPress's own wp-cron.php
+		 * requires.
+		 *
+		 * @return bool
+		 */
+		private function can_finish_request() {
+			if ( function_exists( 'fastcgi_finish_request' ) ) {
+				return version_compare( PHP_VERSION, '7.0.16', '>=' );
 			}
 
-			return false;
+			return function_exists( 'litespeed_finish_request' );
 		}
 
 		/**
@@ -1017,7 +1089,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @return bool
 		 */
 		private function is_purgeable_post( $post ) {
-			if ( ! $post instanceof WP_Post || wp_is_post_revision( $post->ID ) ) {
+			if ( ! $post instanceof WP_Post || wp_is_post_revision( $post->ID ) || self::is_switched_blog() ) {
 				return false;
 			}
 
@@ -1083,6 +1155,17 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
+		 * Whether the request is switched to another site of a multisite network. The
+		 * queue is sent at shutdown for the site that loaded the request, so a change made
+		 * in another site (switch_to_blog()) would purge the wrong site's pages.
+		 *
+		 * @return bool
+		 */
+		private static function is_switched_blog() {
+			return function_exists( 'ms_is_switched' ) && ms_is_switched();
+		}
+
+		/**
 		 * Log an error raised inside this class and swallow it. Every method WordPress
 		 * calls directly (hook callbacks, the constructor, the entry points used by the
 		 * manual purge, heartbeat, restore and the REST route) catches through here, so
@@ -1110,23 +1193,29 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @return array|false API response or false on failure.
 		 */
 		public static function purge_urls( array $urls ) {
-			$connect_id = Helper::get_connect_id();
-			if ( empty( $connect_id ) ) {
-				Helper::add_error_log(
-					array(
-						'message' => 'CDN cache purge failed: no connect_id',
-						'urls'    => $urls,
-					)
-				);
+			try {
+				$connect_id = Helper::get_connect_id();
+				if ( empty( $connect_id ) ) {
+					Helper::add_error_log(
+						array(
+							'message' => 'CDN cache purge failed: no connect_id',
+							'urls'    => $urls,
+						)
+					);
+					return false;
+				}
+
+				$sent_at  = microtime( true );
+				$response = Curl::do_curl( "connects/{$connect_id}/purge-cache-urls", array( 'urls' => $urls ) );
+
+				self::after_purge( false, $urls, $sent_at, $response );
+
+				return $response;
+			} catch ( \Throwable $th ) {
+				self::log_throwable( 'purge_urls', $th );
+
 				return false;
 			}
-
-			$sent_at  = microtime( true );
-			$response = Curl::do_curl( "connects/{$connect_id}/purge-cache-urls", array( 'urls' => $urls ) );
-
-			self::after_purge( false, $urls, $sent_at, $response );
-
-			return $response;
 		}
 
 		/**
@@ -1216,15 +1305,22 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
 					return false;
 				}
+				$wanted = $fresh;
 				foreach ( $sanitized as $key => $value ) {
-					$fresh[ $key ] = $value;
+					$wanted[ $key ] = $value;
 				}
 
-				Helper::set_settings( $fresh );
+				// Already stored (another request saved them meanwhile): nothing to write.
+				// Otherwise update_option() returning false means the write failed.
+				if ( $wanted !== $fresh && false === Helper::set_settings( $wanted ) ) {
+					return false;
+				}
 
 				if ( isset( $sanitized['cdn_enabled'] ) && false === $sanitized['cdn_enabled'] ) {
 					self::save_pending( self::empty_pending() );
-					update_option( self::STOCK_DAILY_OPTION, array(), true );
+					if ( false !== get_option( self::STOCK_DAILY_OPTION, false ) ) {
+						update_option( self::STOCK_DAILY_OPTION, array(), true );
+					}
 					wp_clear_scheduled_hook( self::STOCK_DAILY_HOOK );
 				}
 

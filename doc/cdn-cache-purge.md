@@ -55,9 +55,10 @@ Stock display format**, and a quantity change purges accordingly:
 | Always show quantity remaining (the default) | The product goes on a daily list (`instawp_cdn_stock_daily`); one WP-Cron run (`instawp_cdn_stock_daily_purge`), scheduled when the first product is added, purges every listed product's page. More than 20 products is one full purge |
 
 For "only when low", the quantity before the change counts too, so a restock clears an
-"Only N left". A sale's own product saves (and WooCommerce's re-save of a variation's parent) are
-left to this rule; any other save in a shopper's request, such as an approved review, purges the
-product's page as before. A product's mark lasts until both its save and its stock hook have run
+"Only N left". A product save that changes nothing but its stock (a sale, a restock, an inventory
+sync, a REST or WP-CLI stock update, and WooCommerce's re-save of a sold variation's parent) is left
+to this rule, whoever makes it. A save that also changes something else (title, price, ...) purges
+the product and its listings, or only its own page in a shopper's request (e.g. an approved review). A product's mark lasts until both its save and its stock hook have run
 (in either order), and a parent's until WooCommerce's re-sync at shutdown, so a later unrelated save
 in the same request purges.
 
@@ -106,8 +107,9 @@ error, its URLs (or a "full purge" marker) go into the `instawp_cdn_purge_pendin
   waits for the next purge or the next HTTP WP-Cron run, not for the 5 minutes.
 - A purge that could not be handed to WP-Cron also goes on the list.
 
-On multisite the gate is decided per request for the site that loaded it, so a change made with
-`switch_to_blog()` into a connected subsite from an unconnected one is not purged.
+On multisite the gate is decided per request for the site that loaded it, and nothing is queued
+while the request is switched to another site (`switch_to_blog()`): the queue is sent for the site
+that loaded the request, so a change made in another site is not purged.
 
 A successful purge removes what it covered (a full purge: everything) that was added before it was
 sent. A "no CDN" answer turns the flag off and empties the list; any other 4xx, or a 2xx that is not
@@ -149,6 +151,12 @@ add_filter( 'instawp_cdn_purge_listing_pages', function () {
   reach a browser.
 - The deferred (WP-Cron) fallback needs WP-Cron. The plugin starts the cron runner right away (a
   non-blocking loopback) unless `DISABLE_WP_CRON` is set, in which case the system cron sends it.
+- A post saved by the block editor on a site with a legacy meta box (e.g. Yoast, ACF) is two
+  requests, so its pages are purged twice.
+- WooCommerce 4.9.0 and older lack the `*_before_set_stock` hooks (they ship in 4.9.1), so a sale
+  there purges the product's page at once, whatever the stock display format.
+- A purge handed to WP-Cron carries its URLs, so each one is its own event; with `DISABLE_WP_CRON`
+  and no system cron they wait in the cron list until cron runs.
 - On multilingual sites only the current language's home and archives are derived; on multi-domain
   setups the purge endpoint drops URLs on another domain.
 - Renaming a term or changing a term's slug, and changing a parent page's slug (which moves its
