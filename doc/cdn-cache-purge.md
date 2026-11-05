@@ -36,7 +36,7 @@ purge sets it back to on.
 | A post is moved out of a category or tag | The same, plus the archive it left |
 | WooCommerce stock status changes (e.g. an order sells the last item) | The product's pages |
 | WooCommerce stock quantity changes (an order that does not sell out) | Depends on the store's stock display format; see below. Listings show stock status, not quantity |
-| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages. A visitor's checkout save of a stock-managed product counts as a quantity change |
+| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages. A save that changes only the stock follows the stock rule instead (see "Stock quantity changes") |
 | A variation changes | Its parent product's pages |
 | Theme switch | The whole CDN cache |
 | Core, plugin or theme update (including background auto-updates, and a zip upload that replaces one) | Nothing. Asset URLs usually carry `?ver=`, so cached pages keep working; a full purge after a fleet-wide auto-update would send every site cold to its origin at once. Use "Purge InstaCDN" when an update changes the HTML |
@@ -125,8 +125,12 @@ the same PHP worker. The editor or shopper never waits, there is no extra reques
 depends on WP-Cron. An open PHP session is closed first so it does not lock the user's next request.
 
 Without that (e.g. mod_php), a purge triggered by a site visitor (checkout, payment callback) is
-handed to WP-Cron (`instawp_cdn_purge_deferred`), and an editor's is sent at the end of the request
-as before. WP-CLI and cron always send it right away.
+handed to WP-Cron (`instawp_cdn_purge_deferred`), and an editor's is sent at the end of the request,
+so the editor waits for it: about 1-4 s per URL server-side, up to 20 URLs (before this change it was
+one URL). WP-CLI and cron always send it right away.
+
+Finishing the response early at shutdown priority 999 also ends the output of shutdown callbacks
+that print after it (e.g. Nginx Helper's timestamp comment at 99999), on requests that purge only.
 
 ## Filters
 

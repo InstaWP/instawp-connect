@@ -322,10 +322,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 				$product_id = (int) $product->get_id();
 				if ( ! array_key_exists( $product_id, $this->stock_changes ) ) {
-					// get_data() is the stored value even when a plugin has already set a new
-					// quantity on the object (set_stock_quantity() then save()), where
-					// get_stock_quantity() would return the new one.
-					$data = method_exists( $product, 'get_data' ) ? $product->get_data() : array();
+					// WC_Data's own $data holds the stored value even when a plugin has already
+					// set a new quantity on the object (set_stock_quantity() then save()), where
+					// get_stock_quantity() would return the new one. Read directly: get_data()
+					// also loads the product's meta, which is a query on every sale.
+					$data = self::read_wc_data_property( $product, 'data' );
 					if ( is_array( $data ) && array_key_exists( 'stock_quantity', $data ) ) {
 						$before = $data['stock_quantity'];
 					} else {
@@ -371,6 +372,31 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
+		 * A protected WC_Data property (data, meta_data) as it is, without the getters,
+		 * which load the product's meta from the database when it is not loaded yet.
+		 *
+		 * @param mixed  $object   A WooCommerce data object.
+		 * @param string $property Property name.
+		 *
+		 * @return mixed The value, or null when $object is not a WC_Data.
+		 */
+		private static function read_wc_data_property( $object, $property ) {
+			if ( ! class_exists( 'WC_Data' ) || ! $object instanceof \WC_Data ) {
+				return null;
+			}
+
+			$read = \Closure::bind(
+				function () use ( $property ) {
+					return isset( $this->$property ) ? $this->$property : null;
+				},
+				$object,
+				'WC_Data'
+			);
+
+			return $read ? $read() : null;
+		}
+
+		/**
 		 * Whether a product carries unsaved meta changes (update_meta_data(), REST
 		 * meta_data, delete_meta_data()), which get_changes() does not report. Only meta
 		 * already loaded on the object is looked at: WooCommerce loads meta lazily, every
@@ -382,18 +408,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @return bool
 		 */
 		private static function has_meta_changes( $product ) {
-			if ( ! class_exists( 'WC_Data' ) || ! $product instanceof \WC_Data ) {
-				return false;
-			}
-
-			$read = \Closure::bind(
-				function () {
-					return $this->meta_data;
-				},
-				$product,
-				'WC_Data'
-			);
-			$meta = $read ? $read() : null;
+			$meta = self::read_wc_data_property( $product, 'meta_data' );
 
 			if ( ! is_array( $meta ) ) {
 				return false;
@@ -463,7 +478,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return true;
 			}
 
-			return array() === array_diff( $this->save_changes[ $product_id ], array( 'stock_quantity', 'stock_status', 'date_modified' ) );
+			return array() === array_diff( $this->save_changes[ $product_id ], array( 'stock_quantity', 'stock_status' ) );
 		}
 
 		/**
@@ -600,7 +615,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function handle_daily_stock_purge() {
 			try {
-				$list = get_option( self::STOCK_DAILY_OPTION, array() );
+				// From the database: a checkout may have added a product since this cron request
+				// started (earlier events in the same run can take a while).
+				$raw  = self::read_option_fresh( self::STOCK_DAILY_OPTION );
+				$list = null === $raw ? array() : maybe_unserialize( $raw );
 				update_option( self::STOCK_DAILY_OPTION, array(), true );
 
 				if ( ! is_array( $list ) || empty( $list ) || ! $this->can_purge() ) {
@@ -675,7 +693,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function queue_full_purge() {
 			try {
-				if ( ! $this->can_purge() ) {
+				if ( self::is_switched_blog() || ! $this->can_purge() ) {
 					return;
 				}
 
