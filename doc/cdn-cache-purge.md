@@ -39,7 +39,7 @@ purge sets it back to on.
 | WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages. A visitor's checkout save of a stock-managed product counts as a quantity change |
 | A variation changes | Its parent product's pages |
 | Theme switch | The whole CDN cache |
-| Core, plugin or theme update (including background auto-updates, and a zip upload that replaces one) | Nothing. Asset URLs carry `?ver=`, so cached pages keep working; a full purge after a fleet-wide auto-update would send every site cold to its origin at once. Use "Purge InstaCDN" when an update changes the HTML |
+| Core, plugin or theme update (including background auto-updates, and a zip upload that replaces one) | Nothing. Asset URLs usually carry `?ver=`, so cached pages keep working; a full purge after a fleet-wide auto-update would send every site cold to its origin at once. Use "Purge InstaCDN" when an update changes the HTML |
 
 Drafts and other unpublished content never trigger a purge.
 

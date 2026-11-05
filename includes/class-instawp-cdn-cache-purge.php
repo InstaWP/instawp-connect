@@ -141,7 +141,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				}
 
 				// A theme switch changes every page. Core, plugin and theme updates do not purge:
-				// asset URLs carry ?ver=, so cached HTML keeps working, and a full purge after a
+				// asset URLs usually carry ?ver=, so cached HTML keeps working, and a full purge after a
 				// fleet-wide auto-update would send every site cold to its origin at once.
 				add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
 
