@@ -6,8 +6,9 @@ changes, so visitors never keep seeing an old page. It is on by default and cont
 
 ## When it runs at all
 
-The class adds no hooks at all unless the site is connected (`connect_id` in `instawp_api_options`)
-and `cdn_enabled` there is not `false` (a missing value counts as on). Both are read from an option
+The class adds no hooks at all unless the site is connected (`connect_id` in `instawp_api_options`),
+`is_insta_site` there is not `false` (only InstaWP-hosted sites have the CDN), and `cdn_enabled` is
+not `false`. A missing value counts as on. All three are read from an option
 every request loads anyway, so the check adds no query. The auto-purge toggle is checked when a
 change is queued.
 
@@ -15,14 +16,17 @@ change is queued.
 every connected site keeps purging (and a site without CDN keeps calling client-app on each change,
 as before). client-app must start pushing `cdn_enabled: true` on plan upgrades (`v2/manage/cdn`) no
 later than it starts sending `cdn_enabled: false`, or a site upgraded in between stays "off" until
-its next heartbeat (at most a day; never, if the heartbeat is turned off on that site).
+its next heartbeat (at most a day: the daily heartbeat runs even when the remote-management
+heartbeat is turned off).
 
 `cdn_enabled` and `is_insta_site` come from client-app: the connect response (saved by
 connect-helpers, which also clears them when the connect ID changes), the restore response, every
 purge response (`data.cdn_enabled`), every heartbeat response (at least daily, which corrects a
 stored "no CDN" on a site that gained the CDN some other way), and the `POST v2/manage/cdn` route client-app calls when a plan
-change turns the CDN on. Only an explicit boolean is saved. A connected site without CDN therefore
-stops calling client-app after its first answer. The WooCommerce hooks are added from
+change turns the CDN on. Only an explicit boolean is saved, and `is_insta_site: false` also saves
+`cdn_enabled: false`. A connected site without CDN therefore
+stops calling client-app after its first answer. A site linked to InstaWP after it connected turns back on with its next heartbeat;
+changes made before then are not purged. The WooCommerce hooks are added from
 `woocommerce_loaded`, so only when WooCommerce is active. `InstaWP_CDN_Cache_Purge::purge_url()`
 (WP-CLI) and the admin "Purge InstaCDN" button work whatever the flag says; a successful manual
 purge sets it back to on.

@@ -374,6 +374,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		/**
 		 * A protected WC_Data property (data, meta_data) as it is, without the getters,
 		 * which load the product's meta from the database when it is not loaded yet.
+		 * Both properties are protected and unchanged since WooCommerce 3.0. Should one
+		 * ever go, the callers degrade safely: the old quantity falls back to
+		 * get_stock_quantity(), and meta changes go unseen (other changes still purge).
 		 *
 		 * @param mixed  $object   A WooCommerce data object.
 		 * @param string $property Property name.
@@ -465,9 +468,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Whether a product's save changes nothing but its stock. A save WooCommerce did
-		 * not announce (no before_object_save seen) counts as stock-only, which is what a
-		 * marked product's save is.
+		 * Whether a product's save changes nothing but its stock. WooCommerce announces
+		 * every product save (before_object_save); one it did not (a plugin calling the
+		 * data store directly) is not known to be stock-only, so it purges the listings.
 		 *
 		 * @param int $product_id Product or variation ID.
 		 *
@@ -475,7 +478,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		private function is_stock_only_save( $product_id ) {
 			if ( ! isset( $this->save_changes[ $product_id ] ) ) {
-				return true;
+				return false;
 			}
 
 			return array() === array_diff( $this->save_changes[ $product_id ], array( 'stock_quantity', 'stock_status' ) );
@@ -1320,14 +1323,20 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Whether client-app has said this site has no CDN. Unknown counts as on.
+		 * Whether client-app has said this site has no CDN, or is not hosted on InstaWP
+		 * (only InstaWP-hosted sites have the CDN). Unknown counts as on.
 		 *
 		 * @return bool
 		 */
 		public static function is_cdn_disabled() {
 			$api_options = Helper::get_options();
 
-			return is_array( $api_options ) && isset( $api_options['cdn_enabled'] ) && false === $api_options['cdn_enabled'];
+			if ( ! is_array( $api_options ) ) {
+				return false;
+			}
+
+			return ( isset( $api_options['is_insta_site'] ) && false === $api_options['is_insta_site'] )
+				|| ( isset( $api_options['cdn_enabled'] ) && false === $api_options['cdn_enabled'] );
 		}
 
 		/**
@@ -1344,6 +1353,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		/**
 		 * Save cdn_enabled / is_insta_site into instawp_api_options, sanitized with
 		 * Helper::sanitize_boolean() (as connect-helpers does for the connect response).
+		 * is_insta_site false also saves cdn_enabled false.
 		 * The option is written only when a value changes. A site whose CDN turns off
 		 * also loses its pending list and daily stock list.
 		 *
@@ -1359,6 +1369,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					if ( isset( $flags[ $key ] ) ) {
 						$sanitized[ $key ] = Helper::sanitize_boolean( $flags[ $key ] );
 					}
+				}
+
+				// Only InstaWP-hosted sites have the CDN, so a site that is not one has it off.
+				if ( isset( $sanitized['is_insta_site'] ) && false === $sanitized['is_insta_site'] ) {
+					$sanitized['cdn_enabled'] = false;
 				}
 
 				$api_options = Helper::get_options();
