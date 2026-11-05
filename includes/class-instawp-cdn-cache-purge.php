@@ -1070,7 +1070,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return false;
 			}
 
-			return ! current_user_can( 'edit_posts' );
+			// instawp_is_admin() loads the capability functions if needed and returns false
+			// instead of a fatal when they are missing. false: no admin-area / login check,
+			// so an editor's REST or AJAX request still counts as an editor.
+			return ! instawp_is_admin( 'edit_posts', false );
 		}
 
 		/**
