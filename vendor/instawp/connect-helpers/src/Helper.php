@@ -768,6 +768,19 @@ class Helper {
 				if ( $connect_id && $connect_uuid ) {
 					$api_options['connect_id']   = intval( $connect_id );
 					$api_options['connect_uuid'] = sanitize_text_field( $connect_uuid );
+
+					// Whether the site is hosted with InstaWP and has the CDN, for instawp-connect's
+					// CDN auto-purge. Sanitized like the plugin's v2/manage/cdn route does; a response
+					// without them (older client-app) removes any value copied in with the options
+					// (staging, migration).
+					foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $cdn_key ) {
+						if ( isset( $connect_response['data'][ $cdn_key ] ) ) {
+							$api_options[ $cdn_key ] = self::sanitize_boolean( $connect_response['data'][ $cdn_key ] );
+						} elseif ( isset( $api_options[ $cdn_key ] ) ) {
+							unset( $api_options[ $cdn_key ] );
+						}
+					}
+
 					if ( ! empty( $plan_id ) ) {
 						$plan_id = intval( $plan_id );
 						$key     = "plan_{$plan_id}_timestamp";
@@ -894,6 +907,19 @@ class Helper {
 		}
 
 		return $random_string;
+	}
+
+	/**
+	 * A value as a boolean, the way WordPress's REST API sanitizes one: "false", "0" and ""
+	 * are false, anything else is cast. Falls back to FILTER_VALIDATE_BOOLEAN outside
+	 * WordPress. The one place instawp-connect and this package sanitize such a flag.
+	 *
+	 * @param mixed $value Value to sanitize.
+	 *
+	 * @return bool
+	 */
+	public static function sanitize_boolean( $value ) {
+		return function_exists( 'rest_sanitize_boolean' ) ? rest_sanitize_boolean( $value ) : filter_var( $value, FILTER_VALIDATE_BOOLEAN );
 	}
 
 	public static function get_args_option( $key = '', $args = array(), $default = '' ) {
@@ -1096,7 +1122,17 @@ class Helper {
 	}
 
 	public static function set_connect_id( $connect_id ) {
-		$api_options               = self::get_options();
+		$api_options = self::get_options();
+
+		// The CDN flags belong to the previous connect; unknown until client-app says.
+		if ( intval( self::get_args_option( 'connect_id', $api_options ) ) !== intval( $connect_id ) ) {
+			foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $cdn_key ) {
+				if ( isset( $api_options[ $cdn_key ] ) ) {
+					unset( $api_options[ $cdn_key ] );
+				}
+			}
+		}
+
 		$api_options['connect_id'] = intval( $connect_id );
 
 		return self::set_settings( $api_options );

@@ -803,7 +803,9 @@ class InstaWP_Ajax {
 
 		if ( ! empty( $disconnected ) ) {
 			$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
-			if ( empty( $response['success'] ) ) {
+			if ( ! empty( $response['success'] ) ) {
+				InstaWP_CDN_Cache_Purge::save_cdn_flags_from_response( $response );
+			} else {
 				$api_key = Helper::get_api_key();
 				$jwt     = Helper::get_jwt();
 
