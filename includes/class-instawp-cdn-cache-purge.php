@@ -359,15 +359,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( is_object( $product ) && method_exists( $product, 'get_id' ) && method_exists( $product, 'get_changes' ) ) {
 					$changes = array_keys( (array) $product->get_changes() );
 
-					// Meta set on the object (update_meta_data(), REST meta_data) is not in
-					// get_changes(): a new or changed meta entry is a real edit too.
-					if ( method_exists( $product, 'get_meta_data' ) ) {
-						foreach ( (array) $product->get_meta_data() as $meta ) {
-							if ( is_object( $meta ) && ( empty( $meta->id ) || ( method_exists( $meta, 'get_changes' ) && $meta->get_changes() ) ) ) {
-								$changes[] = 'meta_data';
-								break;
-							}
-						}
+					if ( self::has_meta_changes( $product ) ) {
+						$changes[] = 'meta_data';
 					}
 
 					$this->save_changes[ (int) $product->get_id() ] = $changes;
@@ -375,6 +368,48 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_before_object_save', $th );
 			}
+		}
+
+		/**
+		 * Whether a product carries unsaved meta changes (update_meta_data(), REST
+		 * meta_data, delete_meta_data()), which get_changes() does not report. Only meta
+		 * already loaded on the object is looked at: WooCommerce loads meta lazily, every
+		 * meta setter loads it first, so meta that was never loaded has no unsaved changes,
+		 * and get_meta_data() would cost a query. Deleted entries (value null) count too.
+		 *
+		 * @param WC_Product $product Product or variation.
+		 *
+		 * @return bool
+		 */
+		private static function has_meta_changes( $product ) {
+			if ( ! class_exists( 'WC_Data' ) || ! $product instanceof \WC_Data ) {
+				return false;
+			}
+
+			$read = \Closure::bind(
+				function () {
+					return $this->meta_data;
+				},
+				$product,
+				'WC_Data'
+			);
+			$meta = $read ? $read() : null;
+
+			if ( ! is_array( $meta ) ) {
+				return false;
+			}
+
+			foreach ( $meta as $entry ) {
+				if ( ! is_object( $entry ) ) {
+					continue;
+				}
+
+				if ( empty( $entry->id ) || null === $entry->value || ( method_exists( $entry, 'get_changes' ) && $entry->get_changes() ) ) {
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		/**

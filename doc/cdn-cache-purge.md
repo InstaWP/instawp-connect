@@ -63,8 +63,8 @@ the product and its listings, or only its own page in a shopper's request (e.g. 
 (in either order), and a parent's until WooCommerce's re-sync at shutdown, so a later unrelated save
 in the same request purges.
 
-The daily list is read and written without a lock, so two checkouts at the same moment can drop
-one product from it. That product's page then shows the old quantity until it sells again or the
+The daily list is read and written without a lock, so two checkouts at the same moment, or a
+checkout running while the daily run empties the list, can drop one product from it. That product's page then shows the old quantity until it sells again or the
 CDN copy expires; checkout always checks real stock. Without WP-Cron (`DISABLE_WP_CRON` and no
 system cron) the daily run never fires.
 
