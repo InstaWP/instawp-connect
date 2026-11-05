@@ -504,8 +504,14 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					return;
 				}
 
+				// One product that throws (a broken product, a filter elsewhere) must not cost
+				// the others their purge: the list is already emptied, so they would be lost.
 				foreach ( array_keys( $list ) as $product_id ) {
-					$this->queue_product( $product_id, false );
+					try {
+						$this->queue_product( $product_id, false );
+					} catch ( \Throwable $th ) {
+						self::log_throwable( 'handle_daily_stock_purge (product ' . $product_id . ')', $th );
+					}
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_daily_stock_purge', $th );
