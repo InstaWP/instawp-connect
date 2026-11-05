@@ -57,7 +57,8 @@ Stock display format**, and a quantity change purges accordingly:
 For "only when low", the quantity before the change counts too, so a restock clears an
 "Only N left". A product save that changes nothing but its stock (a sale, a restock, an inventory
 sync, a REST or WP-CLI stock update, and WooCommerce's re-save of a sold variation's parent) is left
-to this rule, whoever makes it. A save that also changes something else (title, price, ...) purges
+to this rule, whoever makes it. Saves from the product editor, Quick Edit and Bulk Edit still purge
+the listings, because they also update the post itself. A save that also changes something else (title, price, ...) purges
 the product and its listings, or only its own page in a shopper's request (e.g. an approved review). A product's mark lasts until both its save and its stock hook have run
 (in either order), and a parent's until WooCommerce's re-sync at shutdown, so a later unrelated save
 in the same request purges.

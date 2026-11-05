@@ -173,8 +173,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function register_woocommerce_hooks() {
 			try {
-				add_action( 'woocommerce_before_product_object_save', array( $this, 'handle_before_object_save' ), 20 );
-				add_action( 'woocommerce_before_product_variation_object_save', array( $this, 'handle_before_object_save' ), 20 );
+				// Variations fire this one too (their object_type is "product"). Last, so it sees
+				// changes other before-save callbacks add.
+				add_action( 'woocommerce_before_product_object_save', array( $this, 'handle_before_object_save' ), PHP_INT_MAX );
 				add_action( 'woocommerce_product_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
 				add_action( 'woocommerce_variation_before_set_stock', array( $this, 'handle_before_set_stock' ), 20 );
 				add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
@@ -356,7 +357,20 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		public function handle_before_object_save( $product ) {
 			try {
 				if ( is_object( $product ) && method_exists( $product, 'get_id' ) && method_exists( $product, 'get_changes' ) ) {
-					$this->save_changes[ (int) $product->get_id() ] = array_keys( (array) $product->get_changes() );
+					$changes = array_keys( (array) $product->get_changes() );
+
+					// Meta set on the object (update_meta_data(), REST meta_data) is not in
+					// get_changes(): a new or changed meta entry is a real edit too.
+					if ( method_exists( $product, 'get_meta_data' ) ) {
+						foreach ( (array) $product->get_meta_data() as $meta ) {
+							if ( is_object( $meta ) && ( empty( $meta->id ) || ( method_exists( $meta, 'get_changes' ) && $meta->get_changes() ) ) ) {
+								$changes[] = 'meta_data';
+								break;
+							}
+						}
+					}
+
+					$this->save_changes[ (int) $product->get_id() ] = $changes;
 				}
 			} catch ( \Throwable $th ) {
 				self::log_throwable( 'handle_before_object_save', $th );
@@ -520,16 +534,22 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			// Read from the database, not this request's copy, so a product another checkout
-			// added since this request started is kept.
-			$raw  = self::read_option_fresh( self::STOCK_DAILY_OPTION );
-			$list = null === $raw ? array() : maybe_unserialize( $raw );
+			// This request's copy first: a product sold again is usually listed already, and
+			// that costs no query. Only when adding is the list read from the database, so
+			// a product another checkout added since this request started is kept.
+			$list = get_option( self::STOCK_DAILY_OPTION, array() );
 			$list = is_array( $list ) ? $list : array();
 
 			// Past MAX_URLS products the daily run is one full purge, so more IDs add nothing.
 			if ( ! isset( $list[ $product_id ] ) && count( $list ) <= self::MAX_URLS ) {
-				$list[ $product_id ] = true;
-				update_option( self::STOCK_DAILY_OPTION, $list, true );
+				$raw  = self::read_option_fresh( self::STOCK_DAILY_OPTION );
+				$list = null === $raw ? array() : maybe_unserialize( $raw );
+				$list = is_array( $list ) ? $list : array();
+
+				if ( ! isset( $list[ $product_id ] ) && count( $list ) <= self::MAX_URLS ) {
+					$list[ $product_id ] = true;
+					update_option( self::STOCK_DAILY_OPTION, $list, true );
+				}
 			}
 
 			if ( ! wp_next_scheduled( self::STOCK_DAILY_HOOK ) ) {
@@ -1145,6 +1165,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		private function is_visitor_request() {
 			if ( ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron() ) {
+				return false;
+			}
+
+			// An Action Scheduler queue run (scheduled sales, imports) can be started from a
+			// shopper's admin-ajax request and carries their cookies; it is not a shopper.
+			if ( did_action( 'action_scheduler_before_process_queue' ) ) {
 				return false;
 			}
 
