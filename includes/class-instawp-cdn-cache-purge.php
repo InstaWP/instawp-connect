@@ -1215,9 +1215,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Save cdn_enabled / is_insta_site into instawp_api_options. Only explicit
-		 * booleans are taken, and the option is written only when a value changes.
-		 * A site whose CDN turns off also loses its pending list.
+		 * Save cdn_enabled / is_insta_site into instawp_api_options, sanitized with
+		 * Helper::sanitize_boolean() (as connect-helpers does for the connect response).
+		 * The option is written only when a value changes. A site whose CDN turns off
+		 * also loses its pending list and daily stock list.
 		 *
 		 * @param array $flags Values keyed by flag name.
 		 *
@@ -1226,18 +1227,20 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public static function save_cdn_flags( array $flags ) {
 			try {
+				$sanitized = array();
+				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
+					if ( isset( $flags[ $key ] ) ) {
+						$sanitized[ $key ] = Helper::sanitize_boolean( $flags[ $key ] );
+					}
+				}
+
 				$api_options = Helper::get_options();
 				$api_options = is_array( $api_options ) ? $api_options : array();
 				$changed     = false;
 
-				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
-					if ( ! isset( $flags[ $key ] ) || ! is_bool( $flags[ $key ] ) ) {
-						continue;
-					}
-
-					if ( ! isset( $api_options[ $key ] ) || $api_options[ $key ] !== $flags[ $key ] ) {
-						$api_options[ $key ] = $flags[ $key ];
-						$changed             = true;
+				foreach ( $sanitized as $key => $value ) {
+					if ( ! isset( $api_options[ $key ] ) || $api_options[ $key ] !== $value ) {
+						$changed = true;
 					}
 				}
 
@@ -1254,15 +1257,13 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				if ( ! is_array( $fresh ) || empty( $fresh['api_key'] ) ) {
 					return false;
 				}
-				foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
-					if ( isset( $flags[ $key ] ) && is_bool( $flags[ $key ] ) ) {
-						$fresh[ $key ] = $flags[ $key ];
-					}
+				foreach ( $sanitized as $key => $value ) {
+					$fresh[ $key ] = $value;
 				}
 
 				Helper::set_settings( $fresh );
 
-				if ( isset( $flags['cdn_enabled'] ) && false === $flags['cdn_enabled'] ) {
+				if ( isset( $sanitized['cdn_enabled'] ) && false === $sanitized['cdn_enabled'] ) {
 					self::save_pending( self::empty_pending() );
 					update_option( self::STOCK_DAILY_OPTION, array(), true );
 					wp_clear_scheduled_hook( self::STOCK_DAILY_HOOK );

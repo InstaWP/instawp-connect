@@ -210,11 +210,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		// Sanitized by save_cdn_flags(), the one place the plugin turns these into booleans.
 		$flags = array();
 		foreach ( array( 'cdn_enabled', 'is_insta_site' ) as $key ) {
 			$value = $request->get_param( $key );
 			if ( null !== $value ) {
-				$flags[ $key ] = rest_sanitize_boolean( $value );
+				$flags[ $key ] = $value;
 			}
 		}
 
