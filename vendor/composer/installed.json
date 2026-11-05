@@ -7,12 +7,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/InstaWP/connect-helpers.git",
-                "reference": "06a1012b7e20b7cd3f703572815783d4e0b908f3"
+                "reference": "133c2d28d56e4153e6a7909d9d8575f6c6bd5501"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/06a1012b7e20b7cd3f703572815783d4e0b908f3",
-                "reference": "06a1012b7e20b7cd3f703572815783d4e0b908f3",
+                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/133c2d28d56e4153e6a7909d9d8575f6c6bd5501",
+                "reference": "133c2d28d56e4153e6a7909d9d8575f6c6bd5501",
                 "shasum": ""
             },
             "require": {
