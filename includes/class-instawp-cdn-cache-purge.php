@@ -1,7 +1,7 @@
 <?php
 /**
  * CDN Cache Purge - Auto-purge CDN cache when content changes, and purge the whole
- * CDN cache after plugin/theme/core updates and theme switches.
+ * CDN cache on a theme switch. Core, plugin and theme updates do not purge.
  *
  * When a post (or WooCommerce product) changes, every page that shows it is purged,
  * not only its own permalink: the home page, the post type archive (the WooCommerce
@@ -140,11 +140,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					add_action( 'woocommerce_loaded', array( $this, 'register_woocommerce_hooks' ) );
 				}
 
-				add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
-				add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
+				// A theme switch changes every page. Core, plugin and theme updates do not purge:
+				// asset URLs carry ?ver=, so cached HTML keeps working, and a full purge after a
+				// fleet-wide auto-update would send every site cold to its origin at once.
 				add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
-				// Replacing a plugin/theme by zip upload completes as action=install, not update.
-				add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
 
 				add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
 				add_action( self::STOCK_DAILY_HOOK, array( $this, 'handle_daily_stock_purge' ) );
@@ -561,58 +560,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Queue a full purge after a plugin, theme or core update.
+		 * Request a full CDN purge at the end of the current request (a theme switch).
 		 *
-		 * upgrader_process_complete fires for every update source that goes through the
-		 * WP upgrader: the admin screens, WP-CLI, background auto-updates and external
-		 * managers such as ManageWP/MainWP. Installs and translation updates are ignored.
-		 *
-		 * @param WP_Upgrader $upgrader Upgrader instance (unused).
-		 * @param array       $options  Update context: type, action and affected items.
-		 */
-		public function handle_upgrade_complete( $upgrader, $options ) {
-			try {
-				if ( empty( $options['action'] ) || 'update' !== $options['action'] ) {
-					return;
-				}
-
-				if ( empty( $options['type'] ) || ! in_array( $options['type'], array( 'plugin', 'theme', 'core' ), true ) ) {
-					return;
-				}
-
-				$this->queue_full_purge();
-			} catch ( \Throwable $th ) {
-				self::log_throwable( 'handle_upgrade_complete', $th );
-			}
-		}
-
-		/**
-		 * Queue a full purge after a background auto-update run that updated
-		 * a plugin, theme or core (translation-only runs are ignored).
-		 *
-		 * @param array $results Update results keyed by type.
-		 */
-		public function handle_automatic_updates_complete( $results ) {
-			try {
-				if ( ! is_array( $results ) ) {
-					return;
-				}
-
-				foreach ( array( 'core', 'plugin', 'theme' ) as $type ) {
-					if ( ! empty( $results[ $type ] ) ) {
-						$this->queue_full_purge();
-						return;
-					}
-				}
-			} catch ( \Throwable $th ) {
-				self::log_throwable( 'handle_automatic_updates_complete', $th );
-			}
-		}
-
-		/**
-		 * Request a full CDN purge at the end of the current request.
-		 *
-		 * Coalesced per request, so a bulk update of N items produces one purge.
+		 * Coalesced per request, so several requests for it produce one purge.
 		 */
 		public function queue_full_purge() {
 			try {

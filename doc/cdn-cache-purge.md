@@ -38,7 +38,8 @@ purge sets it back to on.
 | WooCommerce stock quantity changes (an order that does not sell out) | Depends on the store's stock display format; see below. Listings show stock status, not quantity |
 | WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages. A visitor's checkout save of a stock-managed product counts as a quantity change |
 | A variation changes | Its parent product's pages |
-| Plugin, theme or core update, theme switch, zip-replace of a plugin/theme | The whole CDN cache |
+| Theme switch | The whole CDN cache |
+| Core, plugin or theme update (including background auto-updates, and a zip upload that replaces one) | Nothing. Asset URLs carry `?ver=`, so cached pages keep working; a full purge after a fleet-wide auto-update would send every site cold to its origin at once. Use "Purge InstaCDN" when an update changes the HTML |
 
 Drafts and other unpublished content never trigger a purge.
 
