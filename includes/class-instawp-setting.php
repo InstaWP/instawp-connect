@@ -539,12 +539,12 @@ class InstaWP_Setting {
 			),
 			array(
 				'id'      => 'option',
-				'title'   => __( 'WP Options (Deprecated Soon)', 'instawp-connect' ),
+				'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
 				'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
 			),
 			array(
 				'id'      => 'wc',
-				'title'   => __( 'WooCommerce (Deprecated Soon)', 'instawp-connect' ),
+				'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
 				'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
 			),
 		) );

@@ -35,9 +35,6 @@ $events         = $syncing_status ? InstaWP_Sync_DB::total_events() : array();
 
 ?>
 <div class="nav-item-content sync bg-white rounded-md p-6">
-	<div class="bg-yellow-50 border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 font-medium p-4 mb-5" role="alert">
-		<?php esc_html_e( '2-way sync will be deprecated soon.', 'instawp-connect' ); ?>
-	</div>
 	<?php if ( empty( $events ) ) : ?>
         <div class="data-listening">
             <div class="w-full">
