@@ -46,6 +46,23 @@ class InstaWP_Sync_Post {
 		// Handle featured image sync via post meta hooks.
 		add_action( 'updated_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
 		add_action( 'added_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
+
+		// The sync reference ID is plugin-managed; keep it out of the Custom Fields UI and XML-RPC.
+		add_filter( 'is_protected_meta', array( $this, 'protect_reference_id_meta' ), 10, 2 );
+	}
+
+	/**
+	 * Mark the sync reference ID post meta as protected, so users cannot edit it
+	 * through the Custom Fields panel or XML-RPC. The plugin writes it with
+	 * update_post_meta(), which does not check this.
+	 *
+	 * @param bool   $protected Whether the key is protected.
+	 * @param string $meta_key  Meta key.
+	 *
+	 * @return bool
+	 */
+	public function protect_reference_id_meta( $protected, $meta_key ) {
+		return 'instawp_event_sync_reference_id' === $meta_key ? true : $protected;
 	}
 
 	/**
