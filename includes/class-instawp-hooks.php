@@ -468,7 +468,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					array(
 						'parent' => 'instawp-shortcuts',
 						'id'     => 'instawp-sync',
-						'title'  => __( 'Sync (Beta)', 'instawp-connect' ),
+						'title'  => __( 'Sync (Deprecated Soon)', 'instawp-connect' ),
 						'href'   => admin_url( 'tools.php?page=instawp' ),
 						'meta'   => array(
 							'class'  => 'instawp-shortcuts',
