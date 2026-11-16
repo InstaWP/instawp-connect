@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.4.5 - 05 November 2026 =
+= 0.1.4.5 - 16 November 2026 =
 - Improved: Editing a WooCommerce product now also clears the shop, home and category pages from the CDN cache, not just the product page.
 - Improved: Stock changes clear the CDN cache based on the store's stock display setting, and failed cache clears are retried automatically.
 - Changed: Plugin, theme and WordPress core updates no longer clear the whole CDN cache. Switching themes still does.
