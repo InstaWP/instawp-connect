@@ -521,7 +521,7 @@ class InstaWP_Sync_Ajax {
 							'event_hash'     => $data['hash'],
 							'connect_id'     => $connect_id,
 							'status'         => $data['status'],
-							'synced_message' => $data['message'],
+							'synced_message' => sanitize_text_field( $data['message'] ),
 							'date'           => current_time( 'mysql', 1 ),
 						)
 					);

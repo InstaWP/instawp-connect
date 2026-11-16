@@ -312,6 +312,58 @@ class InstaWP_Sync_Helpers {
 		return 'on' === $value;
 	}
 
+	/**
+	 * Unserialize a value received from another site without building arbitrary PHP objects.
+	 *
+	 * Arrays, scalars and stdClass objects (used by some page builders) come through as before. A
+	 * value that holds any other class is refused rather than written back half-built.
+	 *
+	 * @param mixed $value Possibly serialized value.
+	 *
+	 * @return mixed|WP_Error The value, or WP_Error when it contains a disallowed object.
+	 */
+	public static function safe_unserialize( $value ) {
+		if ( ! is_serialized( $value ) ) {
+			return $value;
+		}
+
+		$result = @unserialize( trim( $value ), array( 'allowed_classes' => array( 'stdClass' ) ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
+
+		if ( self::has_incomplete_class( $result ) ) {
+			return new WP_Error( 'iwp_sync_object_value', esc_html__( 'Value contains PHP objects, not synced.', 'instawp-connect' ) );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Whether an unserialized value contains an object whose class was not allowed.
+	 *
+	 * @param mixed $value Value.
+	 * @param int   $depth Recursion guard.
+	 *
+	 * @return bool
+	 */
+	private static function has_incomplete_class( $value, $depth = 0 ) {
+		if ( $depth > 64 ) {
+			return true;
+		}
+
+		if ( $value instanceof __PHP_Incomplete_Class ) {
+			return true;
+		}
+
+		if ( is_array( $value ) || $value instanceof stdClass ) {
+			foreach ( (array) $value as $item ) {
+				if ( self::has_incomplete_class( $item, $depth + 1 ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	public static function object_to_array( $object_or_array ) {
 		if ( is_object( $object_or_array ) || is_array( $object_or_array ) ) {
 			$result = array();

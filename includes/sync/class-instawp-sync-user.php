@@ -38,8 +38,14 @@ class InstaWP_Sync_User {
 		$userdata['user_registered']     = $user->data->user_registered;
 		$userdata['user_activation_key'] = $user->data->user_activation_key;
 
+		// $userdata is what the caller passed to wp_insert_user(), so user_pass is the plaintext
+		// password. Never record it: send the stored hash in its own field instead. A receiver on an
+		// older version ignores the new field rather than hashing the hash as a password.
+		unset( $userdata['user_pass'] );
+
 		$details = array(
-			'user_data'    => $userdata,
+			'user_data'      => $userdata,
+			'user_pass_hash' => $user->data->user_pass,
 			'user_meta'    => get_user_meta( $user_id ),
 			'user_roles'   => get_userdata( $user_id )->roles,
 			'reference_id' => $reference_id,
@@ -127,11 +133,22 @@ class InstaWP_Sync_User {
 		$user_id          = $this->get_user_id( $reference_id, $user_data['user_email'] );
 
 		if ( $v->event_slug === 'user_register' && ! empty( $user_data ) ) {
+			// New events carry the stored hash; older events still carry the plaintext in user_pass,
+			// which wp_insert_user() hashes as before.
+			$user_pass_hash = ! empty( $details['user_pass_hash'] ) ? $details['user_pass_hash'] : '';
+			if ( empty( $user_data['user_pass'] ) ) {
+				$user_data['user_pass'] = wp_generate_password( 32, true, true );
+			}
+
 			$user_id = wp_insert_user( $user_data );
 
 			if ( is_wp_error( $user_id ) ) {
 				$log_data[ $v->id ] = $user_id->get_error_message();
 			} else {
+				if ( $user_pass_hash ) {
+					InstaWP_Sync_DB::update( $user_table, array( 'user_pass' => $user_pass_hash ), $user_id, 'ID' );
+					clean_user_cache( $user_id );
+				}
 				$this->manage_user_meta( $user_meta, $user_id, $source_db_prefix );
 			}
 		}
@@ -181,9 +198,14 @@ class InstaWP_Sync_User {
 	public function manage_user_meta( $user_meta, $user_id, $source_db_prefix ) {
 		if ( ! empty( $user_meta ) && is_array( $user_meta ) ) {
 			foreach ( $user_meta as $key => $value ) {
-				$key = str_replace( $source_db_prefix, InstaWP_Sync_DB::wpdb()->prefix, $key );
+				$key   = str_replace( $source_db_prefix, InstaWP_Sync_DB::wpdb()->prefix, $key );
+				$value = InstaWP_Sync_Helpers::safe_unserialize( reset( $value ) );
+				if ( is_wp_error( $value ) ) {
+					\InstaWP\Connect\Helpers\Helper::add_error_log( array( 'message' => 'Sync: user meta skipped, ' . $value->get_error_message(), 'meta_key' => $key ) );
+					continue;
+				}
 
-				update_user_meta( $user_id, $key, maybe_unserialize( reset( $value ) ) );
+				update_user_meta( $user_id, $key, $value );
 			}
 		}
 	}

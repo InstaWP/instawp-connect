@@ -3,7 +3,7 @@ jQuery(document).ready(function ($) {
     const showSyncError = (message) => {
         $("#destination-site").attr("disabled", false);
         $(".sync-changes-btn").removeClass('disable-a loading');
-        $('.sync_error_success_msg').html('<p class="error">' + message + '</p>');
+        $('.sync_error_success_msg').empty().append($('<p class="error"></p>').text(message));
     };
 
     jQuery('.instawp_select2').select2({
@@ -230,13 +230,13 @@ jQuery(document).ready(function ($) {
 
             if (response.data.count == 0) {
                 $(".sync-changes-btn").addClass('disabled');
-                $('.sync_error_success_msg').html('<p class="error">' + response.data.message + '</p>');
+                $('.sync_error_success_msg').empty().append($('<p class="error"></p>').text(response.data.message));
             } else {
                 $(".sync-changes-btn").removeClass('disabled');
             }
         }, (message) => {
             $("#event-type-list").removeClass('instawp-box-loading');
-            $('.sync_error_success_msg').html('<p class="error">' + message + '</p>');
+            $('.sync_error_success_msg').empty().append($('<p class="error"></p>').text(message));
         });
     }
 
@@ -289,7 +289,7 @@ jQuery(document).ready(function ($) {
                 el_sync_recording.removeClass('recording-on');
             }
         }, (message) => {
-            $('.sync_error_success_msg').html('<p class="error">' + message + '</p>');
+            $('.sync_error_success_msg').empty().append($('<p class="error"></p>').text(message));
         });
     }
 

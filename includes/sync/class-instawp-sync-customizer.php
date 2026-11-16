@@ -99,6 +99,10 @@ class InstaWP_Sync_Customizer {
 
 		if ( isset( $data['options'] ) ) {
 			foreach ( $data['options'] as $option_key => $option_value ) {
+				if ( InstaWP_Sync_Option::is_protected_option( $option_key ) ) {
+					continue;
+				}
+
 				$option = new \InstaWP_Sync_Customize_Setting( $wp_customize, $option_key, array(
 					'default'    => '',
 					'type'       => 'option',

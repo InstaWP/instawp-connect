@@ -285,7 +285,7 @@ class InstaWP_Sync_Menu {
 		foreach ( $megamenu_data['items'] as $menu_item_id => $megamenu ) {
 			// Unserialize
 			if ( is_string( $megamenu ) ) {
-				$megamenu = maybe_unserialize( $megamenu );
+				$megamenu = InstaWP_Sync_Helpers::safe_unserialize( $megamenu ); // WP_Error is skipped below.
 			}
 
 			if ( ! is_array( $megamenu ) ) {
