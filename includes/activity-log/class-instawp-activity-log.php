@@ -365,8 +365,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 *
 		 * The first non-bbPress role wins, so an administrator who also holds a forum role is still
 		 * "administrator", and a forum-only user is recorded as their forum role, no longer as an
-		 * administrator. A user with no role on this site is "administrator" if they are a super
-		 * admin (multisite), otherwise "guest", the label already used for logged-out actors.
+		 * administrator. A user with no role on this site is "administrator" when is_super_admin()
+		 * is true (a multisite super admin, or on a single site a user holding delete_users
+		 * directly), otherwise "guest", the label already used for logged-out actors.
 		 *
 		 * @param WP_User $user Acting user.
 		 *

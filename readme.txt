@@ -98,6 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.4.6 (beta) =
+- Fixed: The activity log now records events for posts, users and plugins with long names, and shows names as plain text.
+- Fixed: The activity log now shows the correct user role.
+- Improved: Refreshing the staging site list makes fewer requests.
+- Changed: Removed unused code and API methods.
+
 = 0.1.4.5 - 16 November 2026 =
 - Security: Hardened a database query in two-way sync.
 - Changed: 2-way sync is now marked as deprecated soon.
