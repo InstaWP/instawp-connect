@@ -46,6 +46,31 @@ One-time connection setup links a WordPress site to an InstaWP account via API k
 | `/configuration` | Get/set site configuration |
 | `/user` | Add/manage users |
 
+## REST API Endpoints (v2/woocommerce)
+
+Registered only when WooCommerce is active (`includes/apis/class-instawp-rest-api-woocommerce.php`).
+Each callback authenticates with `validate_api_request()`.
+
+| Endpoint | Description | Parameters |
+|----------|-------------|------------|
+| `/summary` | Orders and customers summary for a date range; `compare=true` adds a `previous` period | `from_date`, `to_date` (required), `limit`, `offset`, `compare` |
+| `/graph` | Orders, sales or customers over time | as `/summary`, plus `type` (`orders`, `sales`, `customers`) and `granularity` (`hourly` … `yearly`) |
+| `/products` | Products | `limit`, `offset` |
+| `/orders` | Orders | `limit`, `offset` |
+| `/users` | Customers | none |
+
+`limit`/`offset` must be numeric. `compare` accepts `true`/`false`/`1`/`0` and is converted to a real
+boolean (`rest_sanitize_boolean`), so `compare=false` turns comparison off. An invalid value gets a 400.
+
+**Never pass a fixed-argument PHP built-in as a `validate_callback`** (e.g. `'is_numeric'`). WordPress
+calls the callback with three arguments (value, request, key), and on PHP 8 such a built-in given
+extra arguments throws `ArgumentCountError`. That error is a fatal, and it happens before the route
+callback (and its authentication) runs. Wrap it in a closure, or use a WordPress function such as
+`rest_is_boolean`.
+
+Likewise, check a parameter's type before handing it to a built-in that needs a string:
+`?from_date[]=x` would make `strtotime()` throw a `TypeError`, so the date checks test `is_string()` first.
+
 ## White-Label / Account Info Hiding
 
 Define `CONNECT_HIDE_ACCOUNT_INFO` in `wp-config.php` to suppress account details
