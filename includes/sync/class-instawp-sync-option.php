@@ -117,7 +117,11 @@ class InstaWP_Sync_Option {
 		// The capture side never records a protected option, so receiving one means the event did not
 		// come from a normal capture. Apply the same rule here.
 		if ( ! is_string( $option_name ) || ! self::can_apply_received_option( $option_name ) ) {
-			return InstaWP_Sync_Helpers::sync_response( $v, array( $v->id => esc_html__( 'Protected option, not synced.', 'instawp-connect' ) ) );
+			$message = is_string( $option_name ) && preg_match( '/^[\x20-\x7e]+$/', trim( $option_name ) )
+				? esc_html__( 'Protected option, not synced.', 'instawp-connect' )
+				: esc_html__( 'Option name not supported (non-ASCII characters), not synced.', 'instawp-connect' );
+
+			return InstaWP_Sync_Helpers::sync_response( $v, array( $v->id => $message ) );
 		}
 
 		// add or update option
