@@ -12,6 +12,18 @@ dashboard's activity log and Slack/email triggers.
 - Option `instawp_activity_log_interval`: `instantly` (default) or `every_x_minutes`
   (`instawp_activity_log_interval_minutes`, default 5, runs a recurring Action Scheduler action).
 
+## Stored values (`InstaWP_Activity_Log::insert()`)
+
+- `object_name` is stored as **plain text**: entities decoded, then tags stripped, whitespace collapsed,
+  and trimmed to **50 characters**, which is the column's length. A longer value used to make `wpdb::insert()` reject
+  the whole row, so events about long titles or names were silently lost. There is no schema change.
+  Consumers (dashboard, PDF report, alert emails) must escape it on output. The dashboard and the PDF
+  report already do.
+- `user_caps` is the user's first non-bbPress role (an administrator who also holds a forum role stays
+  `administrator`). It falls back to the user's first role, then to the first capability key, then to
+  `unknown`. Logged-out actors stay `guest`. Earlier versions labelled users with no caps, and
+  `bbp_participant`, as `administrator`.
+
 ## Sending (`InstaWP_Activity_Log::send_log_data()`)
 
 `send_log_data()` runs after every logged event in `instantly` mode, and from the

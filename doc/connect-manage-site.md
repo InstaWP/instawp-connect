@@ -44,7 +44,7 @@ One-time connection setup links a WordPress site to an InstaWP account via API k
 | `/deactivate` | Deactivate plugins |
 | `/auto-update` | Configure auto-updates |
 | `/configuration` | Get/set site configuration |
-| `/user` | Add/manage users |
+| `/user` | Add a user (`POST`). `PUT`/`DELETE` are disabled: no caller was found, and they are pending removal |
 
 ## White-Label / Account Info Hiding
 

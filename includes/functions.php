@@ -895,9 +895,21 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 	 */
 	function instawp_get_connect_detail_by_connect_id( $connect_id ) {
 		// connects/<connect_id>
+		// The endpoint returns every connected site at once, so instawp_set_staging_sites_list() used to
+		// download the same response once per staging site. Reuse a successful one for this request.
+		static $connected_sites = array();
+
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
-		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), 'GET' );
+
+		if ( isset( $connected_sites[ $site_connect_id ] ) ) {
+			$api_response = $connected_sites[ $site_connect_id ];
+		} else {
+			$api_response = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), 'GET' );
+			if ( ! empty( $api_response['success'] ) ) {
+				$connected_sites[ $site_connect_id ] = $api_response;
+			}
+		}
 
 		if ( $api_response['success'] ) {
 			$api_response = Helper::get_args_option( 'data', $api_response, array() );

@@ -22,21 +22,6 @@ if ( isset( $current->response[ $plugin_file ] ) ) {
 	$update_available    = true;
 }
 
-/**
- * Jaed and Sayan discussed and made the decision to remove this functionality.
- *
- * If there is no requirement comes in the future, we will permanently delete this with the associates files.
- */
-
-//if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
-//  $file_path = INSTAWP_PLUGIN_DIR . 'migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
-//
-//  if ( file_exists( $file_path ) ) {
-//      include $file_path;
-//
-//      return;
-//  }
-//}
 $connect_id      = Helper::get_connect_id();
 $connect_api_key = Helper::get_api_key();
 $connect_domain  = Helper::get_api_domain();

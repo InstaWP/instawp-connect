@@ -2275,46 +2275,6 @@ include $file_path;';
 
 
 	/**
-	 * Write htaccess rules
-	 *
-	 * @return false
-	 */
-	public static function write_htaccess_rule() {
-
-		if ( is_multisite() ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'get_home_path' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		$migration_settings = Option::get_option( 'instawp_migration_settings', array() );
-		$parent_domain      = Helper::get_args_option( 'parent_domain', $migration_settings );
-		$skip_media_folder  = Helper::get_args_option( 'skip_media_folder', $migration_settings, false );
-
-		if ( $skip_media_folder && ! empty( $parent_domain ) ) {
-
-			$htaccess_file    = get_home_path() . '.htaccess';
-			$htaccess_content = array(
-				'## BEGIN InstaWP Connect',
-				'<IfModule mod_rewrite.c>',
-				'RewriteEngine On',
-				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_domain . '/wp-content/uploads/$1',
-				'</IfModule>',
-				'## END InstaWP Connect',
-			);
-			$htaccess_content = implode( "\n", $htaccess_content );
-			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-
-			file_put_contents( $htaccess_file, $htaccess_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-
-		return false;
-	}
-
-
-	/**
 	 * Auto login page HTML code.
 	 */
 	public static function auto_login_page( $fields, $url, $title ) {
@@ -2799,12 +2759,23 @@ include $file_path;';
 		$site_id        = Helper::get_args_option( 'id', $sites_res_data );
 
 		if ( ! empty( $sites_task_id ) ) {
+			$failed_checks = 0;
+
 			while ( true ) {
 				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
+					// A failed check returns fast, so retrying without the wait spun this loop flat out.
+					++$failed_checks;
+					if ( $failed_checks >= 12 ) {
+						return new WP_Error( 'could_not_check_site_status', esc_html__( 'Could not check the site creation status. Please try again later.', 'instawp-connect' ) );
+					}
+
+					sleep( 5 );
 					continue;
 				}
+
+				$failed_checks = 0;
 
 				$status_res_data     = Helper::get_args_option( 'data', $status_res, array() );
 				$percentage_complete = Helper::get_args_option( 'percentage_complete', $status_res_data, 0 );
