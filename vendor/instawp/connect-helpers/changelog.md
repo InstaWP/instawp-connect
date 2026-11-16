@@ -1,3 +1,10 @@
+v1.1.4
+======
+- Added: The site's CDN state (`cdn_enabled`, `is_insta_site`) from the connect response is stored in `instawp_api_options`, for the instawp-connect CDN auto-purge. A response without them removes both, and both are cleared when the connect id changes.
+- Added: `Helper::sanitize_boolean()`, `rest_sanitize_boolean()` with a `filter_var()` fallback outside WordPress.
+- Improved: The persisted error log keeps credential values and URL query strings out of its entries, keeps at most 20 entries, skips payloads over 5 KB, and resets when the plugin version changes.
+- Removed: The debug-log line that wrote outgoing request headers.
+
 v1.1.3
 ======
 - Fixed: Config Manager no longer reports a constant whose `define()` sits inside a conditional block (e.g. the InstaCache `if ( WP_CLI )` guard) as global wp-config, and no longer rewrites or removes one.
