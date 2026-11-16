@@ -304,8 +304,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				'timestamp'      => current_time( 'mysql', 1 ),
 			) );
 
-			$args['severity'] = $this->get_severity( $args['action'] );
-			$args             = $this->setup_userdata( $args );
+			$args['severity']    = $this->get_severity( $args['action'] );
+			$args                = $this->setup_userdata( $args );
+			$args['object_name'] = $this->prepare_object_name( $args['object_name'] );
 
 			if ( $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name ) {
 				$wpdb->insert(
@@ -343,7 +344,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$user = function_exists( 'get_user_by' ) ? get_user_by( 'id', get_current_user_id() ) : false;
 
 			if ( $user ) {
-				$args['user_caps'] = strtolower( key( $user->caps ) );
+				$args['user_caps'] = $this->get_user_role_label( $user );
 				$args['user_name'] = ! empty( $user->user_login ) ? $user->user_login : $user->display_name;
 				if ( empty( $args['user_id'] ) ) {
 					$args['user_id'] = $user->ID;
@@ -356,11 +357,57 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				}
 			}
 
-			if ( empty( $args['user_caps'] ) || 'bbp_participant' === $args['user_caps'] ) {
-				$args['user_caps'] = 'administrator';
+			return $args;
+		}
+
+		/**
+		 * Label the acting user by their WordPress role.
+		 *
+		 * The first non-bbPress role wins, so an administrator who also holds a forum role is still
+		 * "administrator", and a forum-only user is recorded as their forum role, no longer as an
+		 * administrator. A user with no role on this site is "administrator" when is_super_admin()
+		 * is true (a multisite super admin, or on a single site a user holding delete_users
+		 * directly), otherwise "guest", the label already used for logged-out actors.
+		 *
+		 * @param WP_User $user Acting user.
+		 *
+		 * @return string
+		 */
+		private function get_user_role_label( $user ) {
+			$roles = array_values( (array) $user->roles );
+
+			foreach ( $roles as $role ) {
+				if ( 0 !== strpos( $role, 'bbp_' ) ) {
+					return strtolower( $role );
+				}
 			}
 
-			return $args;
+			if ( ! empty( $roles ) ) {
+				return strtolower( $roles[0] );
+			}
+
+			return is_super_admin( $user->ID ) ? 'administrator' : 'guest';
+		}
+
+		/**
+		 * Store the object name as plain text that fits its column.
+		 *
+		 * object_name is varchar(50) and wpdb rejects the whole row, rather than truncating, when a
+		 * value is longer, so an event about a long post title or display name was silently lost.
+		 * It is stored unescaped (the dashboard escapes on output). Entities are decoded BEFORE tags
+		 * are stripped, so an entity-encoded tag in a title cannot come back as markup in the
+		 * alert emails this value is copied into.
+		 *
+		 * @param mixed $name Raw object name.
+		 *
+		 * @return string
+		 */
+		private function prepare_object_name( $name ) {
+			$name  = wp_strip_all_tags( html_entity_decode( (string) $name, ENT_QUOTES, 'UTF-8' ) );
+			$clean = preg_replace( '/\s+/u', ' ', $name ); // null on invalid UTF-8.
+			$name  = trim( null === $clean ? $name : $clean );
+
+			return mb_substr( $name, 0, 50, 'UTF-8' );
 		}
 
 		private function get_severity( $action ) {

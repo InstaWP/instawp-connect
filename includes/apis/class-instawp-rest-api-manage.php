@@ -105,16 +105,23 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 				'callback'            => array( $this, 'add_user' ),
 				'permission_callback' => '__return_true',
 			),
-			array(
-				'methods'             => 'PUT',
-				'callback'            => array( $this, 'update_user' ),
-				'permission_callback' => '__return_true',
-			),
-			array(
-				'methods'             => 'DELETE',
-				'callback'            => array( $this, 'delete_user' ),
-				'permission_callback' => '__return_true',
-			),
+			/*
+			 * PUT (update_user) and DELETE (delete_user) are disabled: no caller was found. The
+			 * dashboard only sends POST to this route, and the platform's user tools go through
+			 * WP-CLI. Remove both methods and their callbacks once a release confirms nothing
+			 * depended on them.
+			 *
+			 * array(
+			 *     'methods'             => 'PUT',
+			 *     'callback'            => array( $this, 'update_user' ),
+			 *     'permission_callback' => '__return_true',
+			 * ),
+			 * array(
+			 *     'methods'             => 'DELETE',
+			 *     'callback'            => array( $this, 'delete_user' ),
+			 *     'permission_callback' => '__return_true',
+			 * ),
+			 */
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/database-manager', array(
