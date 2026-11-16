@@ -19,10 +19,12 @@ dashboard's activity log and Slack/email triggers.
   the whole row, so events about long titles or names were silently lost. There is no schema change.
   Consumers (dashboard, PDF report, alert emails) must escape it on output. The dashboard and the PDF
   report already do.
-- `user_caps` is the user's first non-bbPress role (an administrator who also holds a forum role stays
-  `administrator`). It falls back to the user's first role, then to the first capability key, then to
-  `unknown`. Logged-out actors stay `guest`. Earlier versions labelled users with no caps, and
-  `bbp_participant`, as `administrator`.
+- `user_caps` is always a WordPress role or `guest`: the user's first non-bbPress role (an administrator
+  who also holds a forum role stays `administrator`), else their bbPress role, else `administrator` for a
+  multisite super admin with no role on this site, else `guest`. Logged-out actors are `guest`.
+  Earlier versions (code taken from the Activity Log plugin) labelled every user with no caps, and every
+  `bbp_participant`, as `administrator`. In that plugin the label controlled log visibility; here it is
+  only recorded.
 
 ## Sending (`InstaWP_Activity_Log::send_log_data()`)
 

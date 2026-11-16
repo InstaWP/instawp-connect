@@ -344,7 +344,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$user = function_exists( 'get_user_by' ) ? get_user_by( 'id', get_current_user_id() ) : false;
 
 			if ( $user ) {
-				$args['user_caps'] = strtolower( key( $user->caps ) );
+				$args['user_caps'] = $this->get_user_role_label( $user );
 				$args['user_name'] = ! empty( $user->user_login ) ? $user->user_login : $user->display_name;
 				if ( empty( $args['user_id'] ) ) {
 					$args['user_id'] = $user->ID;
@@ -357,25 +357,22 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				}
 			}
 
-			if ( $user ) {
-				$args['user_caps'] = $this->get_user_role_label( $user, $args['user_caps'] );
-			}
-
 			return $args;
 		}
 
 		/**
-		 * Label the acting user by their real role.
+		 * Label the acting user by their WordPress role.
 		 *
-		 * Prefers the first non-bbPress role, so an administrator who also holds a forum role is
-		 * still "administrator" and a forum participant is no longer reported as one.
+		 * The first non-bbPress role wins, so an administrator who also holds a forum role is still
+		 * "administrator", and a forum-only user is recorded as their forum role, no longer as an
+		 * administrator. A user with no role on this site is "administrator" if they are a super
+		 * admin (multisite), otherwise "guest", the label already used for logged-out actors.
 		 *
-		 * @param WP_User $user      Acting user.
-		 * @param string  $first_cap First key of the user's caps, used when the user has no role.
+		 * @param WP_User $user Acting user.
 		 *
 		 * @return string
 		 */
-		private function get_user_role_label( $user, $first_cap ) {
+		private function get_user_role_label( $user ) {
 			$roles = array_values( (array) $user->roles );
 
 			foreach ( $roles as $role ) {
@@ -388,7 +385,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				return strtolower( $roles[0] );
 			}
 
-			return ! empty( $first_cap ) ? $first_cap : 'unknown';
+			return is_super_admin( $user->ID ) ? 'administrator' : 'guest';
 		}
 
 		/**
