@@ -38,9 +38,7 @@ class InstaWP_Sync_User {
 		$userdata['user_registered']     = $user->data->user_registered;
 		$userdata['user_activation_key'] = $user->data->user_activation_key;
 
-		// $userdata is what the caller passed to wp_insert_user(), so user_pass is the plaintext
-		// password. Never record it: send the stored hash in its own field instead. A receiver on an
-		// older version ignores the new field rather than hashing the hash as a password.
+		// The password travels only as the stored hash, in user_pass_hash.
 		unset( $userdata['user_pass'] );
 
 		$details = array(
@@ -133,8 +131,8 @@ class InstaWP_Sync_User {
 		$user_id          = $this->get_user_id( $reference_id, $user_data['user_email'] );
 
 		if ( $v->event_slug === 'user_register' && ! empty( $user_data ) ) {
-			// New events carry the stored hash; older events still carry the plaintext in user_pass,
-			// which wp_insert_user() hashes as before.
+			// The user is created with a random password, then given the source's stored hash. An event
+			// that sets user_data.user_pass instead is passed to wp_insert_user() unchanged.
 			$user_pass_hash = ! empty( $details['user_pass_hash'] ) ? $details['user_pass_hash'] : '';
 			if ( empty( $user_data['user_pass'] ) ) {
 				$user_data['user_pass'] = wp_generate_password( 32, true, true );
@@ -145,9 +143,14 @@ class InstaWP_Sync_User {
 			if ( is_wp_error( $user_id ) ) {
 				$log_data[ $v->id ] = $user_id->get_error_message();
 			} else {
-				if ( $user_pass_hash ) {
+				if ( $user_pass_hash && $this->can_verify_password_hash( $user_pass_hash ) ) {
 					InstaWP_Sync_DB::update( $user_table, array( 'user_pass' => $user_pass_hash ), $user_id, 'ID' );
 					clean_user_cache( $user_id );
+				} elseif ( $user_pass_hash ) {
+					\InstaWP\Connect\Helpers\Helper::add_error_log( array(
+						'message' => 'Sync: password hash format is not supported by this WordPress version; the user needs a password reset.',
+						'user_id' => $user_id,
+					) );
 				}
 				$this->manage_user_meta( $user_meta, $user_id, $source_db_prefix );
 			}
@@ -193,6 +196,24 @@ class InstaWP_Sync_User {
 		}
 
 		return InstaWP_Sync_Helpers::sync_response( $v, $log_data );
+	}
+
+	/**
+	 * Whether this site's WordPress can check a password against the given stored hash.
+	 *
+	 * WordPress 6.8 moved to bcrypt ($wp$2y$...). Earlier versions only check phpass ($P$/$H$) and
+	 * legacy MD5 hashes, so a newer hash written there would leave a user who cannot log in.
+	 *
+	 * @param string $hash Stored password hash from the source site.
+	 *
+	 * @return bool
+	 */
+	private function can_verify_password_hash( $hash ) {
+		if ( 0 === strpos( $hash, '$P$' ) || 0 === strpos( $hash, '$H$' ) || preg_match( '/^[a-f0-9]{32}$/', $hash ) ) {
+			return true;
+		}
+
+		return version_compare( get_bloginfo( 'version' ), '6.8', '>=' );
 	}
 
 	public function manage_user_meta( $user_meta, $user_id, $source_db_prefix ) {

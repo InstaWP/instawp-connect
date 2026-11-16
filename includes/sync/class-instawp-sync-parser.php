@@ -245,10 +245,11 @@ class InstaWP_Sync_Parser {
 				$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
 				$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
 
-				// Only write file types WordPress allows in the media library (filterable via upload_mimes).
-				$file_type = wp_check_filetype( $file_name );
+				// Only write known media types: WordPress's full mime list (not the per-user upload list,
+				// since sync runs with no current user) plus SVG, which many sites add through a plugin.
+				$file_type = wp_check_filetype( $file_name, array_merge( wp_get_mime_types(), array( 'svg|svgz' => 'image/svg+xml' ) ) );
 				if ( empty( $file_type['ext'] ) ) {
-					// Not $failed_message: its failed_process_attachment marker queues a retry, and this never succeeds.
+					// Not $failed_message: that marker puts the event on the upload-mode retry list.
 					InstaWP_Sync_Helpers::get_set_sync_parser_log( 'Error: file type not allowed ' . $image_url, true );
 					return $attachment_id;
 				}

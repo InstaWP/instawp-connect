@@ -99,7 +99,8 @@ class InstaWP_Sync_Customizer {
 
 		if ( isset( $data['options'] ) ) {
 			foreach ( $data['options'] as $option_key => $option_value ) {
-				if ( InstaWP_Sync_Option::is_protected_option( $option_key ) ) {
+				// A setting id like base[key] writes the option "base".
+				if ( InstaWP_Sync_Option::is_protected_option( current( explode( '[', (string) $option_key ) ) ) ) {
 					continue;
 				}
 

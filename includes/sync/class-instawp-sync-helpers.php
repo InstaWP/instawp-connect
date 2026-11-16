@@ -330,7 +330,7 @@ class InstaWP_Sync_Helpers {
 		$result = @unserialize( trim( $value ), array( 'allowed_classes' => array( 'stdClass' ) ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
 
 		if ( self::has_incomplete_class( $result ) ) {
-			return new WP_Error( 'iwp_sync_object_value', esc_html__( 'Value contains PHP objects, not synced.', 'instawp-connect' ) );
+			return new WP_Error( 'iwp_sync_object_value', esc_html__( 'Value could not be safely unserialized, not synced.', 'instawp-connect' ) );
 		}
 
 		return $result;
