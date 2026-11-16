@@ -242,6 +242,12 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				if ( ! empty( $heartbeat_body ) ) {
 					self::set_last_heartbeat_data( $heartbeat_body, $connect_id );
 				}
+
+				// client-app sends the CDN state on every heartbeat, which corrects a stored "no CDN"
+				// on a site that has since gained it without a plan change the plugin heard about.
+				if ( class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
+					InstaWP_CDN_Cache_Purge::save_cdn_flags_from_response( $heartbeat_response );
+				}
 			} elseif ( ! empty( $response_data ) && isset( $response_data['remove_connect'] ) && true === $response_data['remove_connect'] ) {
 				// Remove connect.
 				instawp_reset_running_migration( 'hard' );

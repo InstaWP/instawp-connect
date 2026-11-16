@@ -12,7 +12,7 @@ Utility functions and tools available in the InstaWP Connect plugin.
 | Function | Description |
 |----------|-------------|
 | `process_ajax()` with type='cache' | Clears WordPress caches |
-| CDN cache purging | Via InstaCDN integration |
+| CDN cache purging | Via InstaCDN integration. Automatic purge rules: [cdn-cache-purge.md](cdn-cache-purge.md) |
 
 Supports multiple cache plugins: WP Super Cache, W3 Total Cache, etc.
 

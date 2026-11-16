@@ -1006,12 +1006,19 @@ if ( ! function_exists( 'instawp_purge_cdn_cache' ) ) {
 			return new WP_Error( 'no_connect_id', __( 'Site is not connected to InstaWP.', 'instawp-connect' ) );
 		}
 
+		$sent_at  = microtime( true );
 		$response = Curl::do_curl(
 			"connects/{$connect_id}/purge-cache",
 			array(),
 			array(),
 			'POST'
 		);
+
+		// Keeps the CDN flag in step and clears what this purge covered from the
+		// auto-purge retry list, whoever triggered it.
+		if ( class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
+			InstaWP_CDN_Cache_Purge::after_purge( true, array(), $sent_at, $response );
+		}
 
 		return $response;
 	}

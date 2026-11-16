@@ -201,7 +201,14 @@ class InstaWP_Sync_DB {
 	}
 
 	public static function existing_update_events( $table_name, $event_slug, $source_id ) {
-		return self::wpdb()->get_var( "SELECT id FROM $table_name WHERE `event_slug`='" . $event_slug . "' AND `source_id`='" . $source_id . "'  AND TIMESTAMPDIFF(SECOND, `date`, '" . current_time( 'mysql', 1 ) . "') <= 5;" );
+		return self::wpdb()->get_var(
+			self::wpdb()->prepare(
+				"SELECT id FROM {$table_name} WHERE `event_slug`=%s AND `source_id`=%s AND TIMESTAMPDIFF(SECOND, `date`, %s) <= 5",
+				$event_slug,
+				$source_id,
+				current_time( 'mysql', 1 )
+			)
+		);
 	}
 
 	public static function checkCustomizerChanges( $table_name ) {
