@@ -143,14 +143,18 @@ class InstaWP_Sync_User {
 			if ( is_wp_error( $user_id ) ) {
 				$log_data[ $v->id ] = $user_id->get_error_message();
 			} else {
-				if ( $user_pass_hash && $this->can_verify_password_hash( $user_pass_hash ) ) {
+				if ( $user_pass_hash ) {
 					InstaWP_Sync_DB::update( $user_table, array( 'user_pass' => $user_pass_hash ), $user_id, 'ID' );
 					clean_user_cache( $user_id );
-				} elseif ( $user_pass_hash ) {
-					\InstaWP\Connect\Helpers\Helper::add_error_log( array(
-						'message' => 'Sync: password hash format is not supported by this WordPress version; the user needs a password reset.',
-						'user_id' => $user_id,
-					) );
+
+					// Written either way: a hash this WordPress cannot check yet starts working once it
+					// is upgraded. Log the case so a failed login on this site can be explained.
+					if ( ! $this->can_verify_password_hash( $user_pass_hash ) ) {
+						\InstaWP\Connect\Helpers\Helper::add_error_log( array(
+							'message' => 'Sync: password hash format likely needs WordPress 6.8+; the user may need a password reset on this site.',
+							'user_id' => $user_id,
+						) );
+					}
 				}
 				$this->manage_user_meta( $user_meta, $user_id, $source_db_prefix );
 			}
@@ -199,21 +203,17 @@ class InstaWP_Sync_User {
 	}
 
 	/**
-	 * Whether this site's WordPress can check a password against the given stored hash.
+	 * Best-effort guess whether this site's WordPress can check the given stored hash. Used only
+	 * for logging.
 	 *
-	 * WordPress 6.8 moved to bcrypt ($wp$2y$...). Earlier versions only check phpass ($P$/$H$) and
-	 * legacy MD5 hashes, so a newer hash written there would leave a user who cannot log in.
+	 * WordPress 6.8 writes "$wp$"-prefixed bcrypt hashes, which earlier core versions cannot check.
 	 *
 	 * @param string $hash Stored password hash from the source site.
 	 *
 	 * @return bool
 	 */
 	private function can_verify_password_hash( $hash ) {
-		if ( 0 === strpos( $hash, '$P$' ) || 0 === strpos( $hash, '$H$' ) || preg_match( '/^[a-f0-9]{32}$/', $hash ) ) {
-			return true;
-		}
-
-		return version_compare( get_bloginfo( 'version' ), '6.8', '>=' );
+		return 0 !== strpos( $hash, '$wp$' ) || version_compare( get_bloginfo( 'version' ), '6.8', '>=' );
 	}
 
 	public function manage_user_meta( $user_meta, $user_id, $source_db_prefix ) {
