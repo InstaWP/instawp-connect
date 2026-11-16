@@ -133,7 +133,10 @@ class InstaWP_Sync_User {
 		if ( $v->event_slug === 'user_register' && ! empty( $user_data ) ) {
 			// The user is created with a random password, then given the source's stored hash. An event
 			// that sets user_data.user_pass instead is passed to wp_insert_user() unchanged.
-			$user_pass_hash = ! empty( $details['user_pass_hash'] ) ? $details['user_pass_hash'] : '';
+			$user_pass_hash = ! empty( $details['user_pass_hash'] ) && is_string( $details['user_pass_hash'] ) ? $details['user_pass_hash'] : '';
+
+			// A registration always creates a user. With an ID, wp_insert_user() would update an existing one.
+			unset( $user_data['ID'] );
 			if ( empty( $user_data['user_pass'] ) ) {
 				$user_data['user_pass'] = wp_generate_password( 32, true, true );
 			}

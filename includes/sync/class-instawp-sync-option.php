@@ -116,7 +116,7 @@ class InstaWP_Sync_Option {
 
 		// The capture side never records a protected option, so receiving one means the event did not
 		// come from a normal capture. Apply the same rule here.
-		if ( ! is_string( $option_name ) || '' === $option_name || self::is_protected_option( $option_name ) ) {
+		if ( ! is_string( $option_name ) || ! self::can_apply_received_option( $option_name ) ) {
 			return InstaWP_Sync_Helpers::sync_response( $v, array( $v->id => esc_html__( 'Protected option, not synced.', 'instawp-connect' ) ) );
 		}
 
@@ -136,6 +136,31 @@ class InstaWP_Sync_Option {
 		}
 
 		return InstaWP_Sync_Helpers::sync_response( $v );
+	}
+
+	/**
+	 * Whether an option name received from another site may be written here.
+	 *
+	 * The database matches option_name loosely (its collation folds case, accents and ignores some
+	 * characters), so a name is checked as given AND as the row it would actually resolve to.
+	 * Names outside printable ASCII are refused outright.
+	 *
+	 * @param string $option Option name from the event.
+	 *
+	 * @return bool
+	 */
+	public static function can_apply_received_option( $option ) {
+		global $wpdb;
+
+		$option = trim( (string) $option );
+
+		if ( '' === $option || ! preg_match( '/^[\x20-\x7e]+$/', $option ) || self::is_protected_option( $option ) ) {
+			return false;
+		}
+
+		$stored = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option ) );
+
+		return ! ( is_string( $stored ) && self::is_protected_option( $stored ) );
 	}
 
 	/**

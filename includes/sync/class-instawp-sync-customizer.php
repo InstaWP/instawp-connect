@@ -107,7 +107,7 @@ class InstaWP_Sync_Customizer {
 
 				// Check the option WordPress will actually write: the base of a base[key] id, parsed by core.
 				$id_data = $option->id_data();
-				if ( InstaWP_Sync_Option::is_protected_option( $id_data['base'] ) ) {
+				if ( ! InstaWP_Sync_Option::can_apply_received_option( $id_data['base'] ) ) {
 					continue;
 				}
 
