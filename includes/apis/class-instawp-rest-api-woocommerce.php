@@ -19,26 +19,31 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'     => array(
 					'default'           => -1,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'offset'    => array(
 					'default'           => 0,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'compare'   => array(
 					'default'           => false,
-					'validate_callback' => 'is_boolean',
+					'validate_callback' => 'rest_is_boolean',
+					'sanitize_callback' => 'rest_sanitize_boolean',
 				),
 				'from_date' => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
-						return strtotime( $param ) !== false;
+						return is_string( $param ) && strtotime( $param ) !== false;
 					},
 				),
 				'to_date'   => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
-						return strtotime( $param ) !== false;
+						return is_string( $param ) && strtotime( $param ) !== false;
 					},
 				),
 			),
@@ -51,26 +56,31 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'       => array(
 					'default'           => -1,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'offset'      => array(
 					'default'           => 0,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'compare'     => array(
 					'default'           => false,
-					'validate_callback' => 'is_boolean',
+					'validate_callback' => 'rest_is_boolean',
+					'sanitize_callback' => 'rest_sanitize_boolean',
 				),
 				'from_date'   => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
-						return strtotime( $param ) !== false;
+						return is_string( $param ) && strtotime( $param ) !== false;
 					},
 				),
 				'to_date'     => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
-						return strtotime( $param ) !== false;
+						return is_string( $param ) && strtotime( $param ) !== false;
 					},
 				),
 				'type'        => array(
@@ -95,11 +105,15 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'  => array(
 					'default'           => 10,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'offset' => array(
 					'default'           => 0,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 			),
 			'permission_callback' => '__return_true',
@@ -111,11 +125,15 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'  => array(
 					'default'           => 10,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 				'offset' => array(
 					'default'           => 0,
-					'validate_callback' => 'is_numeric',
+					'validate_callback' => function( $param, $request, $key ) {
+						return is_numeric( $param );
+					},
 				),
 			),
 			'permission_callback' => '__return_true',
