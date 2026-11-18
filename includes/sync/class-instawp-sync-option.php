@@ -111,28 +111,81 @@ class InstaWP_Sync_Option {
 			return $response;
 		}
 
-		$data = InstaWP_Sync_Helpers::object_to_array( $v->details );
+		$data        = InstaWP_Sync_Helpers::object_to_array( $v->details );
+		$option_name = 'delete_option' === $v->event_slug ? $data : ( isset( $data['name'] ) ? $data['name'] : '' );
+
+		// The capture side never records a protected option, so receiving one means the event did not
+		// come from a normal capture. Apply the same rule here.
+		if ( ! is_string( $option_name ) || ! self::can_apply_received_option( $option_name ) ) {
+			$message = is_string( $option_name ) && preg_match( '/^[\x20-\x7e]+$/', trim( $option_name ) )
+				? esc_html__( 'Protected option, not synced.', 'instawp-connect' )
+				: esc_html__( 'Option name not supported (non-ASCII characters), not synced.', 'instawp-connect' );
+
+			return InstaWP_Sync_Helpers::sync_response( $v, array( $v->id => $message ) );
+		}
 
 		// add or update option
 		if ( in_array( $v->event_slug, array( 'add_option', 'update_option' ), true ) ) {
-			Option::update_option( $data['name'], maybe_unserialize( $data['value'] ) );
+			$value = InstaWP_Sync_Helpers::safe_unserialize( $data['value'] );
+			if ( is_wp_error( $value ) ) {
+				return InstaWP_Sync_Helpers::sync_response( $v, array( $v->id => $value->get_error_message() ) );
+			}
+
+			Option::update_option( $option_name, $value );
 		}
 
 		// delete option
 		if ( $v->event_slug === 'delete_option' ) {
-			delete_option( $data );
+			delete_option( $option_name );
 		}
 
 		return InstaWP_Sync_Helpers::sync_response( $v );
 	}
 
-	private function is_protected_option( $option ) {
-		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'blog_public', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log', 'iwp_connect_helper_error_log', 'iwp_connect_helper_error_log_version', 'iwp_failed_direct_process_media_events', 'iwp_sync_processed_media_ids', 'iwp_sync_config_data', 'iwp_mig_helper_error_log', 'instawp_last_heartbeat_data', $this->options_meta_name );
+	/**
+	 * Whether an option name received from another site may be written here.
+	 *
+	 * The database matches option_name loosely (its collation folds case, accents and ignores some
+	 * characters), so a name is checked as given AND as the row it would actually resolve to.
+	 * Names outside printable ASCII are refused outright.
+	 *
+	 * @param string $option Option name from the event.
+	 *
+	 * @return bool
+	 */
+	public static function can_apply_received_option( $option ) {
+		global $wpdb;
+
+		$option = trim( (string) $option );
+
+		if ( '' === $option || ! preg_match( '/^[\x20-\x7e]+$/', $option ) || self::is_protected_option( $option ) ) {
+			return false;
+		}
+
+		$stored = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option ) );
+
+		return ! ( is_string( $stored ) && self::is_protected_option( $stored ) );
+	}
+
+	/**
+	 * Options that two-way sync never captures or applies.
+	 *
+	 * @param string $option Option name.
+	 *
+	 * @return bool
+	 */
+	public static function is_protected_option( $option ) {
+		// Compare the name the options API will use: it trims names, and option_name matching is
+		// case-insensitive in the database.
+		$option = strtolower( trim( (string) $option ) );
+
+		$excluded_options = array( 'default_role', 'users_can_register', 'admin_email', 'cron', 'instawp_api_options', 'siteurl', 'home', 'blog_public', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log', 'iwp_connect_helper_error_log', 'iwp_connect_helper_error_log_version', 'iwp_failed_direct_process_media_events', 'iwp_sync_processed_media_ids', 'iwp_sync_config_data', 'iwp_mig_helper_error_log', 'instawp_last_heartbeat_data', 'instawp_2waysync_options_metadata' );
 
 		if ( in_array( $option, $excluded_options, true )
 			|| strpos( $option, '_transient' ) !== false
 			|| strpos( $option, 'instawp' ) !== false
 			|| strpos( $option, 'action_scheduler' ) !== false
+			|| 'user_roles' === substr( $option, -10 ) // {prefix}user_roles, whatever the prefix.
 		) {
 			return true;
 		}

@@ -23,7 +23,7 @@ if ( ! empty( $events ) ) : ?>
                 $label_attributes .= sprintf(' aria-label="%s: %s"', __(  'Synced', 'instawp-connect' ), wp_date( 'M j, Y H:i A', strtotime( $event->synced_date ) ) );
             } else if ( ! empty( $event->synced_message ) ) {
                 $label_classes[]   = 'hint--left';
-                $label_attributes .= sprintf(' aria-label="%s"', $event->synced_message );
+                $label_attributes .= sprintf(' aria-label="%s"', esc_attr( $event->synced_message ) );
             }
         ?>
         <tr>

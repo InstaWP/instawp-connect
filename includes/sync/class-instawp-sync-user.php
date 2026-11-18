@@ -38,8 +38,12 @@ class InstaWP_Sync_User {
 		$userdata['user_registered']     = $user->data->user_registered;
 		$userdata['user_activation_key'] = $user->data->user_activation_key;
 
+		// The password travels only as the stored hash, in user_pass_hash.
+		unset( $userdata['user_pass'] );
+
 		$details = array(
-			'user_data'    => $userdata,
+			'user_data'      => $userdata,
+			'user_pass_hash' => $user->data->user_pass,
 			'user_meta'    => get_user_meta( $user_id ),
 			'user_roles'   => get_userdata( $user_id )->roles,
 			'reference_id' => $reference_id,
@@ -127,11 +131,34 @@ class InstaWP_Sync_User {
 		$user_id          = $this->get_user_id( $reference_id, $user_data['user_email'] );
 
 		if ( $v->event_slug === 'user_register' && ! empty( $user_data ) ) {
+			// The user is created with a random password, then given the source's stored hash. An event
+			// that sets user_data.user_pass instead is passed to wp_insert_user() unchanged.
+			$user_pass_hash = ! empty( $details['user_pass_hash'] ) && is_string( $details['user_pass_hash'] ) ? $details['user_pass_hash'] : '';
+
+			// A registration always creates a user. With an ID, wp_insert_user() would update an existing one.
+			unset( $user_data['ID'] );
+			if ( empty( $user_data['user_pass'] ) ) {
+				$user_data['user_pass'] = wp_generate_password( 32, true, true );
+			}
+
 			$user_id = wp_insert_user( $user_data );
 
 			if ( is_wp_error( $user_id ) ) {
 				$log_data[ $v->id ] = $user_id->get_error_message();
 			} else {
+				if ( $user_pass_hash ) {
+					InstaWP_Sync_DB::update( $user_table, array( 'user_pass' => $user_pass_hash ), $user_id, 'ID' );
+					clean_user_cache( $user_id );
+
+					// Written either way: a hash this WordPress cannot check yet starts working once it
+					// is upgraded. Log the case so a failed login on this site can be explained.
+					if ( ! $this->can_verify_password_hash( $user_pass_hash ) ) {
+						\InstaWP\Connect\Helpers\Helper::add_error_log( array(
+							'message' => 'Sync: password hash format likely needs WordPress 6.8+; the user may need a password reset on this site.',
+							'user_id' => $user_id,
+						) );
+					}
+				}
 				$this->manage_user_meta( $user_meta, $user_id, $source_db_prefix );
 			}
 		}
@@ -178,12 +205,31 @@ class InstaWP_Sync_User {
 		return InstaWP_Sync_Helpers::sync_response( $v, $log_data );
 	}
 
+	/**
+	 * Best-effort guess whether this site's WordPress can check the given stored hash. Used only
+	 * for logging.
+	 *
+	 * WordPress 6.8 writes "$wp$"-prefixed bcrypt hashes, which earlier core versions cannot check.
+	 *
+	 * @param string $hash Stored password hash from the source site.
+	 *
+	 * @return bool
+	 */
+	private function can_verify_password_hash( $hash ) {
+		return 0 !== strpos( $hash, '$wp$' ) || version_compare( get_bloginfo( 'version' ), '6.8', '>=' );
+	}
+
 	public function manage_user_meta( $user_meta, $user_id, $source_db_prefix ) {
 		if ( ! empty( $user_meta ) && is_array( $user_meta ) ) {
 			foreach ( $user_meta as $key => $value ) {
-				$key = str_replace( $source_db_prefix, InstaWP_Sync_DB::wpdb()->prefix, $key );
+				$key   = str_replace( $source_db_prefix, InstaWP_Sync_DB::wpdb()->prefix, $key );
+				$value = InstaWP_Sync_Helpers::safe_unserialize( reset( $value ) );
+				if ( is_wp_error( $value ) ) {
+					\InstaWP\Connect\Helpers\Helper::add_error_log( array( 'message' => 'Sync: user meta skipped, ' . $value->get_error_message(), 'meta_key' => $key ) );
+					continue;
+				}
 
-				update_user_meta( $user_id, $key, maybe_unserialize( reset( $value ) ) );
+				update_user_meta( $user_id, $key, $value );
 			}
 		}
 	}

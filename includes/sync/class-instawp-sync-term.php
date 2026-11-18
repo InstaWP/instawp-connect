@@ -126,7 +126,13 @@ class InstaWP_Sync_Term {
 			}
 
 			foreach ( $term_meta['data'] as $key => $value ) {
-				update_term_meta( $term_id, $key, maybe_unserialize( reset( $value ) ) );
+				$value = InstaWP_Sync_Helpers::safe_unserialize( reset( $value ) );
+				if ( is_wp_error( $value ) ) {
+					\InstaWP\Connect\Helpers\Helper::add_error_log( array( 'message' => 'Sync: term meta skipped, ' . $value->get_error_message(), 'meta_key' => $key ) );
+					continue;
+				}
+
+				update_term_meta( $term_id, $key, $value );
 			}
 
 			foreach ( $term_meta['media'] as $key => $media ) {

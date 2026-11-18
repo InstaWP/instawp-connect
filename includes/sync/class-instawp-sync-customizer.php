@@ -105,6 +105,12 @@ class InstaWP_Sync_Customizer {
 					'capability' => 'edit_theme_options',
 				) );
 
+				// Check the option WordPress will actually write: the base of a base[key] id, parsed by core.
+				$id_data = $option->id_data();
+				if ( ! InstaWP_Sync_Option::can_apply_received_option( $id_data['base'] ) ) {
+					continue;
+				}
+
 				if ( in_array( $option_key, $this->parsable_page_options ) ) {
 					$option_value = InstaWP_Sync_Parser::parse_post_events( $option_value );
 				}
