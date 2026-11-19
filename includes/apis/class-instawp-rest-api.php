@@ -1289,7 +1289,9 @@ class InstaWP_Rest_Api {
 	 */
 	protected function validate_config_credentials( $parameters ) {
 		// The REST access gate and set_config() both check the same request: check it once, so a
-		// failed attempt is reported to security plugins only once.
+		// failed attempt is reported to security plugins only once. The cache lives for the PHP
+		// process, i.e. one HTTP request; a long-running process (tests, WP-CLI) would keep the
+		// first result for the same username and password.
 		static $results = array();
 
 		$cache_key = md5( wp_json_encode( array( isset( $parameters['wp_username'] ) ? $parameters['wp_username'] : '', isset( $parameters['application_password'] ) ? $parameters['application_password'] : '' ) ) );
@@ -1326,10 +1328,18 @@ class InstaWP_Rest_Api {
 
 		if ( ! $wp_user instanceof WP_User || ! user_can( $wp_user, 'manage_options' ) ) {
 			// Keep the real reason for support; the caller only ever sees the generic message.
-			Helper::add_error_log( array(
-				'message' => 'v1/config credentials refused',
-				'reason'  => is_wp_error( $wp_user ) ? $wp_user->get_error_code() : ( $wp_user instanceof WP_User ? 'not_administrator' : 'not_authenticated' ),
-			) );
+			// Anyone can trigger most reasons without valid credentials, so each one is logged at
+			// most once an hour and cannot crowd other entries out of the short error log.
+			$reason   = is_wp_error( $wp_user ) ? $wp_user->get_error_code() : ( $wp_user instanceof WP_User ? 'not_administrator' : 'not_authenticated' );
+			$throttle = 'instawp_config_refused_' . substr( sanitize_key( $reason ), 0, 64 );
+
+			if ( false === get_transient( $throttle ) ) {
+				set_transient( $throttle, 1, HOUR_IN_SECONDS );
+				Helper::add_error_log( array(
+					'message' => 'v1/config credentials refused',
+					'reason'  => $reason,
+				) );
+			}
 
 			return $error;
 		}
