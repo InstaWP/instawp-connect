@@ -430,9 +430,20 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		if ( ! empty( $wp_config ) ) {
 			try {
+				// Only the values these two constants accept: a boolean, and for core updates also
+				// one of WordPress's update channels.
+				$updater_disabled = isset( $wp_config['updater_disabled'] ) && is_scalar( $wp_config['updater_disabled'] ) ? rest_sanitize_boolean( $wp_config['updater_disabled'] ) : false;
+				$auto_update_core = isset( $wp_config['auto_update_core'] ) ? $wp_config['auto_update_core'] : false;
+
+				if ( is_bool( $auto_update_core ) || in_array( $auto_update_core, array( 'true', 'false', '1', '0', 1, 0 ), true ) ) {
+					$auto_update_core = rest_sanitize_boolean( $auto_update_core );
+				} elseif ( ! in_array( $auto_update_core, array( 'minor', 'beta', 'rc', 'development', 'branch-development' ), true ) ) {
+					throw new \Exception( esc_html__( 'Invalid auto update value.', 'instawp-connect' ) );
+				}
+
 				$wp_config             = new Helpers\WPConfig( array(
-					'AUTOMATIC_UPDATER_DISABLED' => ! empty( $wp_config['updater_disabled'] ) ? $wp_config['updater_disabled'] : false,
-					'WP_AUTO_UPDATE_CORE'        => ! empty( $wp_config['auto_update_core'] ) ? $wp_config['auto_update_core'] : false,
+					'AUTOMATIC_UPDATER_DISABLED' => $updater_disabled,
+					'WP_AUTO_UPDATE_CORE'        => $auto_update_core,
 				) );
 				$response['wp-config'] = $wp_config->set();
 

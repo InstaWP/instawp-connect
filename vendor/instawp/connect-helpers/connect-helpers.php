@@ -9,7 +9,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect Helpers
- * Version:           1.1.4
+ * Version:           1.1.5
  * Plugin URI:        https://instawp.com
  * Description:       Helpers Package for InstaWP Remote Features.
  * Author:            InstaWP

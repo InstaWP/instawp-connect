@@ -209,6 +209,44 @@ if ( ! function_exists( 'instawp_create_api_connect' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_get_admin_capability' ) ) {
+	/**
+	 * Capability required for InstaWP's admin tools (staging, migration, database manager,
+	 * settings). On multisite these act on the whole network (one database, one wp-config),
+	 * so they need a super admin rather than a site administrator.
+	 *
+	 * @return string
+	 */
+	function instawp_get_admin_capability() {
+		return is_multisite() ? 'manage_network_options' : 'manage_options';
+	}
+}
+
+if ( ! function_exists( 'instawp_is_allowed_api_domain' ) ) {
+	/**
+	 * Whether a URL is one of InstaWP's own app domains, which are the only ones the plugin may
+	 * send its API key to. The INSTAWP_API_DOMAIN constant is handled by the callers.
+	 *
+	 * @param string $api_domain Domain URL, e.g. https://app.instawp.io.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_allowed_api_domain( $api_domain ) {
+		$allowed_domains = array(
+			'https://stage.instawp.io',
+			'https://dev.instawp.io',
+			'https://app.instawp.io',
+		);
+
+		// Development environments.
+		for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) {
+			$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
+		}
+
+		return in_array( rtrim( (string) $api_domain, '/' ), $allowed_domains, true );
+	}
+}
+
 if ( ! function_exists( 'instawp_is_admin' ) ) {
 	/**
 	 * Check if user is admin
@@ -1092,10 +1130,23 @@ if ( ! function_exists( 'instawp_get_user_by_token' ) ) {
 	 * @return \WP_User|null
 	 */
 	function instawp_get_user_by_token( $token ) {
+		if ( ! is_string( $token ) || '' === $token ) {
+			return null;
+		}
+
+		// Tokens are stored as their sha256. A link created before that change still has its
+		// 120-character token stored as-is, so a token of that length is also matched as-is until
+		// it expires. A stored hash (64 characters) is never accepted as a token itself.
+		$candidates = array( hash( 'sha256', $token ) );
+		if ( 120 === strlen( $token ) ) {
+			$candidates[] = $token;
+		}
+
 		$users = get_users(
 			array(
-				'meta_key'   => '_instawp_temporary_login_token',
-				'meta_value' => $token,
+				'meta_key'     => '_instawp_temporary_login_token',
+				'meta_value'   => $candidates,
+				'meta_compare' => 'IN',
 			)
 		);
 
@@ -1133,15 +1184,33 @@ if ( ! function_exists( 'instawp_is_user_attempt_expired' ) ) {
 
 if ( ! function_exists( 'instawp_reduce_login_attempt' ) ) {
 	function instawp_reduce_login_attempt( $user_id ) {
-		$attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+		global $wpdb;
 
-		if ( empty( $attempt ) ) {
+		$meta_key = '_instawp_temporary_login_attempt';
+		$current  = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare( "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1", $user_id, $meta_key )
+		);
+
+		if ( null === $current || ! is_numeric( $current ) || (int) $current <= 0 ) {
 			return false;
 		}
 
-		--$attempt;
+		// Compare-and-swap: the row only changes if it still holds the value just read, so two
+		// simultaneous requests cannot both use the last attempt. (No CAST in the WHERE clause:
+		// strict SQL mode errors on it for non-numeric values.)
+		$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"UPDATE {$wpdb->usermeta} SET meta_value = %s WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
+				(string) ( (int) $current - 1 ),
+				$user_id,
+				$meta_key,
+				$current
+			)
+		);
 
-		return update_user_meta( $user_id, '_instawp_temporary_login_attempt', $attempt );
+		wp_cache_delete( $user_id, 'user_meta' );
+
+		return 1 === (int) $updated;
 	}
 }
 

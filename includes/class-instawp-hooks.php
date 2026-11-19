@@ -170,7 +170,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function generate_api_key() {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				return;
 			}
 
@@ -228,6 +228,51 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			exit();
 		}
 
+		/**
+		 * The page a temporary-login link opens: the site name and one "Log in" button that
+		 * POSTs back to the same URL. It names no user and loads nothing external.
+		 */
+		private function render_temporary_login_page() {
+			if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+				define( 'DONOTCACHEPAGE', true );
+			}
+
+			nocache_headers();
+			header( 'X-Frame-Options: DENY' );
+			header( "Content-Security-Policy: frame-ancestors 'none'" );
+			header( 'Referrer-Policy: no-referrer' );
+			header( 'X-Robots-Tag: noindex, nofollow' );
+			header( 'Content-Type: text/html; charset=' . get_option( 'blog_charset' ) );
+
+			$site_name = get_bloginfo( 'name' );
+			?>
+			<!DOCTYPE html>
+			<html <?php language_attributes(); ?>>
+			<head>
+				<meta charset="<?php echo esc_attr( get_option( 'blog_charset' ) ); ?>">
+				<meta name="viewport" content="width=device-width, initial-scale=1">
+				<meta name="robots" content="noindex, nofollow">
+				<title><?php echo esc_html( $site_name ); ?></title>
+				<style>
+					body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2327}
+					.box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:32px;max-width:360px;width:calc(100% - 32px);text-align:center;box-sizing:border-box}
+					h1{font-size:20px;margin:0 0 20px}
+					button{background:#005e54;color:#fff;border:0;border-radius:6px;padding:12px 24px;font-size:15px;cursor:pointer;width:100%}
+				</style>
+			</head>
+			<body>
+				<div class="box">
+					<?php /* translators: %s: site name */ ?>
+					<h1><?php echo esc_html( sprintf( __( 'Log in to %s', 'instawp-connect' ), $site_name ) ); ?></h1>
+					<form method="post">
+						<button type="submit"><?php esc_html_e( 'Log in', 'instawp-connect' ); ?></button>
+					</form>
+				</div>
+			</body>
+			</html>
+			<?php
+		}
+
 		public function handle_temporary_login_request() {
 
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
@@ -247,14 +292,25 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				exit();
 			}
 
+			// Opening the link only shows a page with a button; the login happens on the POST it
+			// sends. Mail scanners and link previews open links but do not submit forms, so they
+			// can no longer use up the link or receive a session.
+			if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) ) {
+				$this->render_temporary_login_page();
+				exit();
+			}
+
+			if ( ! instawp_reduce_login_attempt( $user->ID ) ) {
+				wp_safe_redirect( home_url() );
+				exit();
+			}
+
 			if ( is_user_logged_in() ) {
 				$current_user_id = get_current_user_id();
 				if ( $user->ID !== $current_user_id ) {
 					wp_logout();
 				}
 			}
-
-			instawp_reduce_login_attempt( $user->ID );
 
 			wp_set_current_user( $user->ID, $user->user_login );
 			wp_set_auth_cookie( $user->ID );
@@ -362,7 +418,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					return;
 				}
 
-				if ( current_user_can( 'manage_options' ) ) {
+				if ( current_user_can( instawp_get_admin_capability() ) ) {
 					$admin_bar->add_menu(
 						array(
 							'parent' => 'instawp',
@@ -492,7 +548,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 				$connect_id = Helper::get_connect_id();
 
-				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
+				if ( ! empty( $connect_id ) && current_user_can( instawp_get_admin_capability() ) ) {
 					$app_domain = Helper::get_api_domain();
 					$admin_bar->add_menu(
 						array(
@@ -507,7 +563,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					);
 				}
 
-				if ( current_user_can( 'manage_options' ) ) {
+				if ( current_user_can( instawp_get_admin_capability() ) ) {
 					$admin_bar->add_menu(
 						array(
 							'parent' => 'instawp',
@@ -595,7 +651,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin() ) {
+			if ( ! instawp_is_admin( instawp_get_admin_capability() ) ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',

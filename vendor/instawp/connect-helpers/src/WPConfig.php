@@ -558,20 +558,17 @@ class WPConfig extends \WPConfigTransformer {
                 continue;
             }
 
+            // A caller may pass array( 'value' => ... ). Only the value is used: how it is written
+            // (raw, separator, add) is never taken from the caller.
             if ( is_array( $value ) ) {
-                if ( ! array_key_exists( 'value', $value ) ) {
+                if ( ! array_key_exists( 'value', $value ) || is_array( $value['value'] ) || is_object( $value['value'] ) ) {
                     continue;
                 }
 
-                $params = [ 'separator', 'add' ];
-                foreach ( $params as $param ) {
-                    if ( array_key_exists( $param, $value ) ) {
-                        $args[ $param ] = $value[ $param ];
-                    }
-                }
-                $args['raw'] = array_key_exists( 'raw', $value ) ? $value['raw'] : true;
-                $value       = $value['value'];
-            } elseif ( is_bool( $value ) ) {
+                $value = $value['value'];
+            }
+
+            if ( is_bool( $value ) ) {
                 $value       = $value ? 'true' : 'false';
                 $args['raw'] = true;
             } elseif ( is_numeric( $value ) ) {
