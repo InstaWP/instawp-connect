@@ -1135,11 +1135,17 @@ if ( ! function_exists( 'instawp_get_user_by_token' ) ) {
 		}
 
 		// Tokens are stored as their sha256. A link created before that change still has its
-		// token stored as-is, so it is matched too until it expires.
+		// 120-character token stored as-is, so a token of that length is also matched as-is until
+		// it expires. A stored hash (64 characters) is never accepted as a token itself.
+		$candidates = array( hash( 'sha256', $token ) );
+		if ( 120 === strlen( $token ) ) {
+			$candidates[] = $token;
+		}
+
 		$users = get_users(
 			array(
 				'meta_key'     => '_instawp_temporary_login_token',
-				'meta_value'   => array( hash( 'sha256', $token ), $token ),
+				'meta_value'   => $candidates,
 				'meta_compare' => 'IN',
 			)
 		);

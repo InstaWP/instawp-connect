@@ -204,29 +204,6 @@ class InstaWP_Rest_Api {
 		);
 	}
 
-	/**
-	 * Checks a plaintext application password against a hashed password.
-	 *
-	 * @since WordPress 6.8.0
-	 *
-	 * @param string $password Plaintext password.
-	 * @param string $hash     Hash of the password to check against.
-	 * @param int    $user_id User ID.
-	 * @return bool Whether the password matches the hashed password.
-	 */
-	public function check_password( $password, $hash, $user_id ) {
-		if ( ! str_starts_with( $hash, '$generic$' ) ) {
-			/*
-			 * If the hash doesn't start with `$generic$`, it is a hash created with `wp_hash_password()`.
-			 * This is the case for application passwords created before WordPress 6.8.0.
-			 */
-			return wp_check_password( $password, $hash, $user_id );
-		} elseif ( function_exists( 'wp_verify_fast_hash' ) ) {
-			return wp_verify_fast_hash( $password, $hash );
-		}
-
-		return false;
-	}
 
 	/**
 	 * Handle website config set.
@@ -253,7 +230,7 @@ class InstaWP_Rest_Api {
 					array(
 						'status'  => false,
 						'success' => false,
-						'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ),
+						'message' => esc_html__( 'Invalid username or application password, or the user is not an administrator.', 'instawp-connect' ),
 					)
 				);
 			}
@@ -1311,6 +1288,24 @@ class InstaWP_Rest_Api {
 	 * @return true|WP_Error
 	 */
 	protected function validate_config_credentials( $parameters ) {
+		// The REST access gate and set_config() both check the same request: check it once, so a
+		// failed attempt is reported to security plugins only once.
+		static $results = array();
+
+		$cache_key = md5( wp_json_encode( array( isset( $parameters['wp_username'] ) ? $parameters['wp_username'] : '', isset( $parameters['application_password'] ) ? $parameters['application_password'] : '' ) ) );
+		if ( ! isset( $results[ $cache_key ] ) ) {
+			$results[ $cache_key ] = $this->check_config_credentials( $parameters );
+		}
+
+		return $results[ $cache_key ];
+	}
+
+	/**
+	 * @param array $parameters Request parameters.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function check_config_credentials( $parameters ) {
 		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
 
@@ -1330,6 +1325,12 @@ class InstaWP_Rest_Api {
 		$wp_user = wp_authenticate_application_password( null, $wp_username, $application_password );
 
 		if ( ! $wp_user instanceof WP_User || ! user_can( $wp_user, 'manage_options' ) ) {
+			// Keep the real reason for support; the caller only ever sees the generic message.
+			Helper::add_error_log( array(
+				'message' => 'v1/config credentials refused',
+				'reason'  => is_wp_error( $wp_user ) ? $wp_user->get_error_code() : ( $wp_user instanceof WP_User ? 'not_administrator' : 'not_authenticated' ),
+			) );
+
 			return $error;
 		}
 

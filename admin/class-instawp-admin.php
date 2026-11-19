@@ -127,7 +127,7 @@ class InstaWP_Admin {
 			add_menu_page(
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
-				'manage_options',
+				instawp_get_admin_capability(),
 				'instawp-template-migrate',
 				array( $this, 'render_template_migrate_page' ),
 				2

@@ -651,7 +651,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin() ) {
+			if ( ! instawp_is_admin( instawp_get_admin_capability() ) ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',

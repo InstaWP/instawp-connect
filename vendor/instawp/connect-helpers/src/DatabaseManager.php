@@ -31,6 +31,11 @@ class DatabaseManager {
 				'success' => false,
 				'message' => $response->get_error_message(),
 			];
+		} elseif ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			return [
+				'success' => false,
+				'message' => 'The database manager could not be downloaded. Please try again.',
+			];
 		} else {
 			$file = wp_remote_retrieve_body( $response );
 		}
