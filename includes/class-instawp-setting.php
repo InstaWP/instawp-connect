@@ -81,7 +81,7 @@ class InstaWP_Setting {
 		// features only; a mixed list such as array( 'administrator', 'subscriber' ) must
 		// not expose the staging, manage, settings or developer tabs -- and the API key the
 		// settings tab renders -- to that lower-privileged user.
-		if ( ! instawp_is_admin( 'manage_options' ) ) {
+		if ( ! instawp_is_admin( instawp_get_admin_capability() ) ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 			unset( $instawp_nav_items['manage'] );

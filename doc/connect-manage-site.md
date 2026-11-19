@@ -99,3 +99,21 @@ Sites are authenticated using:
 - `connect_id` - Unique site identifier
 - `connect_uuid` - Secret token for API calls
 - Bearer token authentication for REST requests
+
+## Admin access, settings and login links
+
+- **Multisite:** InstaWP's admin tools (staging, migration, Database Manager, settings and the AJAX
+  actions behind them) require `instawp_get_admin_capability()`, which is `manage_network_options`
+  (super admin) on multisite and `manage_options` on a single site.
+- **Settings save** (`instawp_update_settings`) requires that capability. The settings forms only write
+  `api_key` and `api_url` into `instawp_api_options`. A changed `api_url` must pass
+  `instawp_is_allowed_api_domain()` (app/stage/dev.instawp.io, client.dev1–9.instawp.me), the same
+  list `/v1/config` uses. Defining `INSTAWP_API_DOMAIN` in wp-config.php overrides it.
+- **`/v1/config`** checks the application password with core's `wp_authenticate_application_password()`
+  and returns one generic message for any failure. It never echoes the request back.
+- **Temporary login links** (`?iwp-temp-login=<token>`): only the token's sha256 is stored. Opening the
+  link shows a "Log in to <site>" page (no-cache, noindex, not frameable, no referrer). The login happens
+  on the POST from its button, and the use count is decremented with a compare-and-swap update.
+- **Database Manager:** a logged-out visitor is sent to the login screen. The login token is random and
+  single-use. Adminer receives a per-session random password, never the real database password. The
+  downloaded Adminer file is checked against its published sha256 (connect-helpers 1.1.5).

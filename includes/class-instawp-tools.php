@@ -28,6 +28,10 @@ class InstaWP_Tools {
 	public static function verify_ajax_request( $capability = 'manage_options', $error_data = array() ) {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
+		if ( 'manage_options' === $capability ) {
+			$capability = instawp_get_admin_capability();
+		}
+
 		if ( ! instawp_is_admin( $capability, false ) ) {
 			wp_send_json_error( empty( $error_data ) ? array( 'message' => "Can't perform this action." ) : $error_data );
 		}

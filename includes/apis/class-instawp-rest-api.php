@@ -317,21 +317,10 @@ class InstaWP_Rest_Api {
 
 			// If api_domain is passed then, set it
 			if ( ! empty( $api_domain ) ) {
-				$api_domain      = rtrim( $api_domain, '/' );
-				$allowed_domains = array(
-					'https://stage.instawp.io',
-					'https://dev.instawp.io',
-					'https://app.instawp.io',
-				);
-
-				// Allow development environments
-				for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) { 
-					$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
-				}
-
+				$api_domain    = rtrim( $api_domain, '/' );
 				$domain_to_set = defined( 'INSTAWP_API_DOMAIN' )
 					? INSTAWP_API_DOMAIN
-					: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
+					: ( instawp_is_allowed_api_domain( $api_domain ) ? $api_domain : '' );
 
 				if ( empty( $domain_to_set ) ) {
 					return $this->send_response(
@@ -400,14 +389,14 @@ class InstaWP_Rest_Api {
 				)
 			);
 		} catch ( \Throwable $th ) {
+			// The request carries credentials, so it is never echoed back.
+			Helper::add_error_log( array( 'message' => 'v1/config failed: ' . $th->getMessage() ) );
+
 			return $this->send_response(
 				array(
 					'status'  => false,
 					'success' => false,
-					'message' => $th->getMessage(),
-					'line'    => $th->getLine(),
-					'file'    => $th->getFile(),
-					'params'  => isset( $parameters ) ? $parameters : null,
+					'message' => esc_html__( 'Could not configure the site. Please try again.', 'instawp-connect' ),
 				)
 			);
 		}
@@ -737,7 +726,7 @@ class InstaWP_Rest_Api {
 
 		$user_metas = array(
 			'_instawp_temporary_login'            => 'yes',
-			'_instawp_temporary_login_token'      => $token,
+			'_instawp_temporary_login_token'      => hash( 'sha256', $token ), // The link carries the token; only its hash is stored.
 			'_instawp_temporary_login_expiration' => $expiry_time,
 			'_instawp_temporary_login_attempt'    => $param_reuse,
 		);
@@ -1326,32 +1315,25 @@ class InstaWP_Rest_Api {
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
 
 		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-		$application_password = str_replace( ' ', '', $application_password );
 		$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-		$wp_user              = get_user_by( 'login', $wp_username );
 
-		// Check if WP_User is valid or not
-		if ( ! $wp_user instanceof WP_User ) {
-			return new WP_Error( 403, esc_html__( 'No user found with the provided username.', 'instawp-connect' ) );
+		// One message for every failure, so the response does not tell which usernames exist or
+		// which of them are administrators.
+		$error = new WP_Error( 403, esc_html__( 'Invalid username or application password, or the user is not an administrator.', 'instawp-connect' ) );
+
+		if ( ! is_string( $wp_username ) || '' === $wp_username || ! is_string( $application_password ) || '' === $application_password ) {
+			return $error;
 		}
 
-		// Check if the user is an administrator or not
-		if ( ! user_can( $wp_user, 'manage_options' ) ) {
-			return new WP_Error( 403, esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ) );
+		// Core's own check: it supports every application password hash format, honours sites
+		// where application passwords are switched off, and reports failures to security plugins.
+		$wp_user = wp_authenticate_application_password( null, $wp_username, $application_password );
+
+		if ( ! $wp_user instanceof WP_User || ! user_can( $wp_user, 'manage_options' ) ) {
+			return $error;
 		}
 
-		$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
-		$application_passwords = ! is_array( $application_passwords ) ? array() : $application_passwords;
-
-		foreach ( $application_passwords as $password_data ) {
-			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
-
-			if ( $this->check_password( $application_password, $password, $wp_user->ID ) ) {
-				return true;
-			}
-		}
-
-		return new WP_Error( 403, esc_html__( 'Application password does not match.', 'instawp-connect' ) );
+		return true;
 	}
 
 	/**

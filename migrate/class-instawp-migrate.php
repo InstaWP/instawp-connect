@@ -32,7 +32,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 		public function reset_plugin() {
 			check_ajax_referer( 'instawp-connect', 'security' );
 
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
 
@@ -54,7 +54,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 		public function connect_api_url() {
 			check_ajax_referer( 'instawp-connect', 'security' );
 
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
 
@@ -66,6 +66,10 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 
 
 		public function update_settings() {
+
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'You are not allowed to change these settings.', 'instawp-connect' ) ) );
+			}
 
 			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( wp_unslash( $_REQUEST['form_data'] ) ) : '';
 			$_form_data = str_replace( 'amp;', '', $_form_data );
@@ -93,6 +97,14 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				$field_value = Helper::get_args_option( $field_id, $form_data );
 
 				if ( 'instawp_api_options' === $field_id && is_array( $field_value ) ) {
+					// The settings forms only edit the API key and the API domain.
+					$field_value = array_intersect_key( $field_value, array( 'api_key' => true, 'api_url' => true ) );
+
+					$api_url = Helper::get_args_option( 'api_url', $field_value );
+					if ( ! empty( $api_url ) && ! defined( 'INSTAWP_API_DOMAIN' ) && ! instawp_is_allowed_api_domain( $api_url ) ) {
+						wp_send_json_error( array( 'message' => esc_html__( 'This API domain is not allowed.', 'instawp-connect' ) ) );
+					}
+
 					$api_key     = Helper::get_args_option( 'api_key', $field_value );
 					$api_options = Option::get_option( 'instawp_api_options', array() );
 					$old_api_key = Helper::get_args_option( 'api_key', $api_options );
