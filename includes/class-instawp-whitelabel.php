@@ -39,7 +39,8 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 		}
 
 		public function disconnect_whitelabel_site() {
-			if ( ! instawp_is_connect_whitelabelled() ) {
+			// admin_init also fires for AJAX, Heartbeat and logged-out requests; only an admin's page load does this.
+			if ( ! instawp_is_connect_whitelabelled() || ! instawp_is_admin_page_load() ) {
 				return;
 			}
 
@@ -72,12 +73,19 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 			$remaining_days      = $trial - $diff->days;
 
 			if ( $remaining_days <= 0 ) {
+				// A failed disconnect is retried after an hour, not on the next admin request.
+				if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
+					return;
+				}
+
 				$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
 
 				if ( empty( $api_response['success'] ) ) {
 					error_log( 'Error disconnecting site: ' . $api_response['message'] );
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
 				} else {
 					Helper::set_connect_plan_id( 0 );
+					instawp_retry_later( 'whitelabel_disconnect', 0 );
 				}
 			}
 		}

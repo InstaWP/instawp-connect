@@ -88,6 +88,19 @@ function instawp_plugin_deactivate() {
 	Option::delete_option( 'instawp_last_heartbeat_sent' );
 	Option::delete_option( 'instawp_migration_details' );
 
+	// Stop the plugin's background jobs: once it is inactive nothing handles them, and Action Scheduler
+	// (if another plugin keeps it running) would record each one as failed. Settings and data are kept;
+	// activating again re-creates the jobs. Not reached on a plugin update: WordPress deactivates
+	// silently during an update, which skips this hook.
+	if ( function_exists( 'as_unschedule_all_actions' ) ) {
+		as_unschedule_all_actions( '', array(), 'instawp-connect' );
+	}
+	wp_unschedule_hook( 'instawp_cdn_stock_daily_purge' );
+	wp_unschedule_hook( 'instawp_cdn_purge_deferred' );
+
+	// Remove any Database Manager copy now instead of leaving it until the plugin is activated again.
+	do_action( 'instawp_clean_database_manager' );
+
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
 		Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );

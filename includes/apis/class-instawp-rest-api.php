@@ -461,7 +461,7 @@ class InstaWP_Rest_Api {
 		delete_option( 'instawp_sync_parent_connect_data' );
 		Option::update_option( 'instawp_sync_connect_id', $parent_connect_id );
 		Option::update_option( 'instawp_is_staging', true );
-		instawp_get_source_site_detail();
+		instawp_get_source_site_detail( true );
 
 		return $this->send_response(
 			array(

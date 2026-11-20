@@ -105,7 +105,7 @@ class instaWP {
 	public function register_actions() {
 		$this->unschedule_large_files_list();
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
+		if ( instawp_should_check_schedules() && ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
 		}
 	}

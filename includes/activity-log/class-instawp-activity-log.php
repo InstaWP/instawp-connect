@@ -30,6 +30,24 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		/** Single option holding next_send / retry_after / failures. */
 		const SEND_STATE_OPTION = 'instawp_activity_log_send_state';
 
+		/** Option row whose existence means a send is running. Its value is "<unix time>:<uuid>", set when taken and after each batch. */
+		const SEND_LOCK_OPTION = 'instawp_activity_log_send_lock';
+
+		/** A lock not refreshed for this long belongs to a send that died. A live send refreshes it after every batch, and one batch request cannot take this long. */
+		const SEND_LOCK_TTL = 900;
+
+		/** admin-ajax action of the loopback that runs a queued send. */
+		const SEND_AJAX_ACTION = 'instawp_send_activity_log';
+
+		/** Sends already queued in this request. */
+		private static $send_queued = array(
+			'all'      => false,
+			'critical' => false,
+		);
+
+		/** Value of the send lock while this request holds it, '' otherwise. */
+		private $send_lock = '';
+
 		private $table_name;
 
 		public function __construct() {
@@ -41,10 +59,12 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             add_action( 'add_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
             add_action( 'update_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
 			add_action( 'instawp_handle_non_critical_logs', array( $this, 'send_log_data' ) );
+			add_action( 'wp_ajax_' . self::SEND_AJAX_ACTION, array( $this, 'ajax_send_log_data' ) );
+			add_action( 'wp_ajax_nopriv_' . self::SEND_AJAX_ACTION, array( $this, 'ajax_send_log_data' ) );
 		}
 
         public function register_events() {
-			if ( ! instawp()->activity_log_enabled ) {
+			if ( ! instawp()->activity_log_enabled || ! instawp_should_check_schedules() ) {
 				return;
 			}
 
@@ -80,14 +100,16 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		/**
 		 * Send queued activity logs to the API in bounded batches.
 		 *
-		 * Every logged event calls this in "instantly" mode, so it must stay cheap and must never
-		 * re-send the whole table: an earlier version POSTed every queued row with 10 inline retries
-		 * on each event, and when the API timed out after storing the batch, the same rows were
-		 * stored again on every retry (ClickUp 14ypaj0dejd, ~22M duplicate logs/day from one site).
+		 * Runs in its own request (the loopback queue_send() starts, or an Action Scheduler action), never
+		 * inside the request that logged the event. It must never re-send the whole table: an earlier
+		 * version POSTed every queued row with 10 inline retries on each event, and when the API timed out
+		 * after storing the batch, the same rows were stored again on every retry (ClickUp 14ypaj0dejd,
+		 * ~22M duplicate logs/day from one site).
 		 *
 		 * - At most BATCH_SIZE rows per request and MAX_BATCHES requests per run, oldest first.
 		 * - One attempt per batch. A failure backs off exponentially instead of retrying inline.
 		 * - Non-critical sends are throttled; rows left behind are picked up by a scheduled follow-up.
+		 * - One send at a time per site (send lock), so two runs never send the same rows.
 		 *
 		 * @param bool $critical Send only critical rows, right away (skips the throttle, not the failure backoff).
 		 *
@@ -103,7 +125,38 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$now   = time();
 
 			if ( $state['retry_after'] > $now || ( ! $critical && $state['next_send'] > $now ) ) {
-				$this->schedule_follow_up( max( $state['retry_after'], $state['next_send'] ) );
+				$this->schedule_follow_up( max( $state['retry_after'], $critical ? 0 : $state['next_send'] ), $critical );
+				return;
+			}
+
+			// Another send is running. It may have read the table before this run's rows were added, so
+			// come back once it is likely done rather than send the same rows twice.
+			if ( ! $this->acquire_send_lock() ) {
+				$this->schedule_follow_up( $now + self::SEND_THROTTLE, $critical );
+				return;
+			}
+
+			try {
+				$this->send_locked( $connect_id, $critical );
+			} finally {
+				$this->release_send_lock();
+			}
+		}
+
+		/**
+		 * The send itself. Only called while holding the send lock.
+		 *
+		 * @param int  $connect_id Connect ID.
+		 * @param bool $critical   Send critical rows only.
+		 *
+		 * @return void
+		 */
+		private function send_locked( $connect_id, $critical ) {
+			// Re-read under the lock: a send that just finished may have moved the throttle or backoff.
+			$state = $this->get_send_state();
+			$now   = time();
+			if ( $state['retry_after'] > $now || ( ! $critical && $state['next_send'] > $now ) ) {
+				$this->schedule_follow_up( max( $state['retry_after'], $critical ? 0 : $state['next_send'] ), $critical );
 				return;
 			}
 
@@ -152,7 +205,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					$state['failures']    = $state['failures'] + 1;
 					$state['retry_after'] = time() + min( self::MAX_BACKOFF, self::SEND_THROTTLE * pow( 2, min( $state['failures'], 10 ) ) );
 					$this->save_send_state( $state );
-					$this->schedule_follow_up( $state['retry_after'] );
+					$this->schedule_follow_up( $state['retry_after'], $critical );
 					return;
 				}
 
@@ -166,6 +219,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				if ( ! $has_more ) {
 					break;
 				}
+
+				$this->refresh_send_lock();
 			}
 
 			$state['failures']    = 0;
@@ -173,8 +228,76 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$this->save_send_state( $state );
 
 			if ( $has_more ) {
-				$this->schedule_follow_up( $state['next_send'] );
+				$this->schedule_follow_up( $state['next_send'], $critical );
 			}
+		}
+
+		/**
+		 * Take the send lock.
+		 *
+		 * The lock is a wp_options row inserted with INSERT IGNORE, which is atomic on the unique
+		 * option_name. add_option() cannot be used: it writes with ON DUPLICATE KEY UPDATE, so two racing
+		 * callers would both "add" it. A lock left by a send that died is taken over once it is older than
+		 * SEND_LOCK_TTL, and only by the caller whose UPDATE still matches the value it read.
+		 *
+		 * @return bool Whether this request now holds the lock.
+		 */
+		private function acquire_send_lock() {
+			global $wpdb;
+
+			$value = time() . ':' . wp_generate_uuid4();
+			$taken = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", self::SEND_LOCK_OPTION, $value ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+			if ( 1 !== (int) $taken ) {
+				$held = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::SEND_LOCK_OPTION ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				if ( null === $held || (int) $held > time() - self::SEND_LOCK_TTL ) {
+					return false;
+				}
+
+				$taken = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, self::SEND_LOCK_OPTION, $held ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				if ( 1 !== (int) $taken ) {
+					return false;
+				}
+			}
+
+			$this->send_lock = $value;
+
+			return true;
+		}
+
+		/**
+		 * Move the held lock's time forward, so a long send is not mistaken for a dead one.
+		 *
+		 * @return void
+		 */
+		private function refresh_send_lock() {
+			global $wpdb;
+
+			if ( '' === $this->send_lock ) {
+				return;
+			}
+
+			$value = time() . ':' . wp_generate_uuid4();
+			$moved = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, self::SEND_LOCK_OPTION, $this->send_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			if ( 1 === (int) $moved ) {
+				$this->send_lock = $value;
+			}
+		}
+
+		/**
+		 * Release the lock, only if this request still holds it.
+		 *
+		 * @return void
+		 */
+		private function release_send_lock() {
+			global $wpdb;
+
+			if ( '' === $this->send_lock ) {
+				return;
+			}
+
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", self::SEND_LOCK_OPTION, $this->send_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$this->send_lock = '';
 		}
 
 		/**
@@ -188,32 +311,40 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * The check is not atomic: two callers can both schedule, leaving two pending actions for a while. They
 		 * merge on the next run, since neither can schedule while the other is pending.
 		 *
-		 * @param int $timestamp When to run.
+		 * A critical-only send is covered by any pending send; a full send only by a pending full send.
+		 *
+		 * @param int  $timestamp     When to run.
+		 * @param bool $critical_only Send critical rows only.
 		 *
 		 * @return void
 		 */
-		private function schedule_follow_up( $timestamp ) {
-			if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+		private function schedule_follow_up( $timestamp, $critical_only = false ) {
+			// Before Action Scheduler is ready (an event logged that early), its functions only raise a
+			// "called incorrectly" notice. The loopback still sends; a later event queues the backup.
+			if ( ! function_exists( 'as_get_scheduled_actions' ) || ! ActionScheduler::is_initialized() ) {
 				return;
 			}
 
 			$timestamp = max( time() + self::SEND_THROTTLE, (int) $timestamp );
-			$pending   = as_get_scheduled_actions(
-				array(
-					'hook'         => 'instawp_handle_non_critical_logs',
-					'group'        => 'instawp-connect',
-					'status'       => ActionScheduler_Store::STATUS_PENDING,
-					'date'         => $timestamp,
-					'date_compare' => '<=',
-					'per_page'     => 1,
-				),
-				'ids'
+			$args      = $critical_only ? array( true ) : array();
+			$query     = array(
+				'hook'         => 'instawp_handle_non_critical_logs',
+				'group'        => 'instawp-connect',
+				'status'       => ActionScheduler_Store::STATUS_PENDING,
+				'date'         => $timestamp,
+				'date_compare' => '<=',
+				'per_page'     => 1,
 			);
+			if ( ! $critical_only ) {
+				$query['args'] = $args;
+			}
+
+			$pending = as_get_scheduled_actions( $query, 'ids' );
 			if ( ! empty( $pending ) ) {
 				return;
 			}
 
-			as_schedule_single_action( $timestamp, 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
+			as_schedule_single_action( $timestamp, 'instawp_handle_non_critical_logs', $args, 'instawp-connect' );
 		}
 
 		/**
@@ -331,13 +462,76 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             $activity_log_interval = Option::get_option( 'instawp_activity_log_interval', 'instantly' );
             $activity_log_interval = empty( $activity_log_interval ) ? 'instantly' : $activity_log_interval;
 
-            if ( 'critical' === $args['severity'] ) {
-                $this->send_log_data( true );
-            }
+			// "Instantly" sends everything; "every X minutes" leaves non-critical rows to the recurring send.
+			if ( 'instantly' === $activity_log_interval ) {
+				$this->queue_send( false );
+			} elseif ( 'critical' === $args['severity'] ) {
+				$this->queue_send( true );
+			}
+		}
 
-            if ( 'critical' !== $args['severity'] && 'instantly' === $activity_log_interval ) {
-                $this->send_log_data();
-            }
+		/**
+		 * Get the rows sent soon, without making the current request wait for the API.
+		 *
+		 * Sending used to happen right here, inside whatever request logged the event: a visitor's failed
+		 * login waited on the API, and emptying a trash of 300 posts made 300 requests one after another.
+		 * Now the request only queues a send: once per request, a pending Action Scheduler action is the
+		 * backup and a non-blocking request to this site runs the send in its own process (the same
+		 * fire-and-forget request WordPress uses to spawn WP-Cron). If that request never arrives (loopback
+		 * blocked, password-protected site, ...), the backup action runs on the next queue run instead.
+		 *
+		 * @param bool $critical_only Send critical rows only.
+		 *
+		 * @return void
+		 */
+		private function queue_send( $critical_only ) {
+			// A full send also covers critical rows.
+			if ( self::$send_queued['all'] || ( $critical_only && self::$send_queued['critical'] ) ) {
+				return;
+			}
+			self::$send_queued[ $critical_only ? 'critical' : 'all' ] = true;
+
+			if ( ! instawp_get_connect_id() ) {
+				return;
+			}
+
+			$state   = $this->get_send_state();
+			$now     = time();
+			$send_at = max( $now, $state['retry_after'], $critical_only ? 0 : $state['next_send'] );
+
+			$this->schedule_follow_up( $send_at, $critical_only );
+
+			// Throttled or backing off: the pending action sends once the wait is over.
+			if ( $send_at > $now ) {
+				return;
+			}
+
+			wp_remote_post(
+				admin_url( 'admin-ajax.php' ),
+				array(
+					'timeout'   => 0.01,
+					'blocking'  => false,
+					'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
+					'body'      => array(
+						'action'   => self::SEND_AJAX_ACTION,
+						'critical' => $critical_only ? 1 : 0,
+					),
+				)
+			);
+		}
+
+		/**
+		 * Loopback started by queue_send(). Takes no input beyond "critical rows only", and only ever
+		 * runs this site's own throttled, locked send, so it needs no authentication.
+		 *
+		 * @return void
+		 */
+		public function ajax_send_log_data() {
+			ignore_user_abort( true );
+
+			$this->send_log_data( ! empty( $_POST['critical'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			wp_die( '', '', array( 'response' => 200 ) );
 		}
 
 		private function setup_userdata( array $args ) {

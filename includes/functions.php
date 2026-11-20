@@ -535,6 +535,25 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_should_check_schedules' ) ) {
+	/**
+	 * Whether this request should make sure the plugin's recurring jobs are scheduled.
+	 *
+	 * The check is a database query per job, so it is skipped for visitors' page views, AJAX and
+	 * Heartbeat. wp-admin page loads and cron runs are enough to re-create a missing job: WP-Cron runs
+	 * as its own request, so even a site nobody logs into gets its jobs back within minutes.
+	 *
+	 * @return bool
+	 */
+	function instawp_should_check_schedules() {
+		if ( wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+			return true;
+		}
+
+		return is_admin() && ! wp_doing_ajax();
+	}
+}
+
 if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	/**
 	 * get connect id for source site
@@ -886,19 +905,100 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
-	function instawp_get_source_site_detail() {
+if ( ! function_exists( 'instawp_is_admin_page_load' ) ) {
+	/**
+	 * Whether this is a normal wp-admin page load by an administrator.
+	 *
+	 * admin_init also fires for admin-ajax.php (Heartbeat every 15-60 seconds per open tab, other
+	 * plugins' AJAX, and logged-out visitors' AJAX) and for admin-post.php, so work hooked on it that
+	 * calls the InstaWP API must check this first.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_admin_page_load() {
+		global $pagenow;
 
-		if ( ! empty( $_GET['instawp_debug'] ) ) {
-			wp_send_json_success(
-				array(
-					'fetch_parent' => true,
-					'is_staging'   => instawp()->is_staging,
-				)
-			);
+		if ( wp_doing_ajax() || 'admin-post.php' === $pagenow ) {
+			return false;
 		}
 
-		if ( ! instawp()->is_staging ) {
+		return current_user_can( instawp_get_admin_capability() );
+	}
+}
+
+if ( ! function_exists( 'instawp_retry_is_waiting' ) ) {
+	/**
+	 * Whether a retry wait set by instawp_retry_later() is still running.
+	 *
+	 * All waits live in one option, array( $key => expiry timestamp ).
+	 *
+	 * @param string $key Retry key.
+	 *
+	 * @return bool
+	 */
+	function instawp_retry_is_waiting( $key ) {
+		$waits = Option::get_option( 'instawp_retry_after', array() );
+
+		return is_array( $waits ) && isset( $waits[ $key ] ) && (int) $waits[ $key ] > time();
+	}
+}
+
+if ( ! function_exists( 'instawp_retry_later' ) ) {
+	/**
+	 * Wait before trying $key again, or clear the wait with a $seconds of 0. Expired waits are pruned.
+	 *
+	 * @param string $key     Retry key.
+	 * @param int    $seconds Seconds to wait; 0 clears the wait.
+	 *
+	 * @return void
+	 */
+	function instawp_retry_later( $key, $seconds ) {
+		$waits = Option::get_option( 'instawp_retry_after', array() );
+		$waits = is_array( $waits ) ? $waits : array();
+		$now   = time();
+
+		foreach ( $waits as $wait_key => $expiry ) {
+			if ( (int) $expiry <= $now ) {
+				unset( $waits[ $wait_key ] );
+			}
+		}
+
+		if ( $seconds > 0 ) {
+			$waits[ $key ] = $now + (int) $seconds;
+		} else {
+			unset( $waits[ $key ] );
+		}
+
+		if ( empty( $waits ) ) {
+			Option::delete_option( 'instawp_retry_after' );
+		} else {
+			Option::update_option( 'instawp_retry_after', $waits );
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
+	/**
+	 * On a staging site, look up and store its parent site's details.
+	 *
+	 * Hooked on admin_init, it runs only on wp-admin page loads by an administrator, and after a lookup
+	 * that failed or found nothing it waits an hour: before, a staging site whose parent could not be
+	 * found called the API on every admin_init, including each Heartbeat tick and logged-out AJAX.
+	 *
+	 * @param bool $force Look up now, ignoring the request type and the wait. Used right after the site is
+	 *                    marked as staging (v1/mark-parent, WP-CLI), when instawp()->is_staging still holds
+	 *                    the value read before the flag was set.
+	 *
+	 * @return void
+	 */
+	function instawp_get_source_site_detail( $force = false ) {
+		if ( true === $force ) {
+			$is_staging = (bool) Option::get_option( 'instawp_is_staging', false );
+		} else {
+			$is_staging = instawp()->is_staging && instawp_is_admin_page_load();
+		}
+
+		if ( ! $is_staging ) {
 			return;
 		}
 
@@ -906,19 +1006,15 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			return;
 		}
 
+		if ( true !== $force && instawp_retry_is_waiting( 'source_site_detail' ) ) {
+			return;
+		}
+
 		$connect_id  = instawp_get_connect_id();
 		$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
 
 		Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
-
-		if ( ! empty( $_GET['instawp_debug'] ) ) {
-			wp_send_json_success(
-				array(
-					'connect_id'  => $connect_id,
-					'parent_data' => $parent_data,
-				)
-			);
-		}
+		instawp_retry_later( 'source_site_detail', empty( $parent_data ) ? HOUR_IN_SECONDS : 0 );
 	}
 }
 

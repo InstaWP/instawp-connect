@@ -117,3 +117,26 @@ Sites are authenticated using:
 - **Database Manager:** a logged-out visitor is sent to the login screen. The login token is random and
   single-use. Adminer receives a per-session random password, never the real database password. The
   downloaded Adminer file is checked against its published sha256 (connect-helpers 1.1.5).
+
+## Background work and admin_init
+
+- **Recurring jobs** (heartbeat, activity-log "every X minutes", migrate-file cleanup) are checked and
+  re-created only on wp-admin page loads, cron runs and WP-CLI (`instawp_should_check_schedules()`), never
+  on visitors' page views, AJAX or Heartbeat. WP-Cron runs as its own request, so a missing job comes back
+  within minutes even on a site nobody logs into.
+- **Staging parent lookup** (`instawp_get_source_site_detail()`, on `admin_init`) and the **white-label
+  trial disconnect** (`InstaWP_WhiteLabel::disconnect_whitelabel_site()`, on `admin_init`) run only on a
+  normal wp-admin page load by an administrator (`instawp_is_admin_page_load()`): not for admin-ajax.php
+  (Heartbeat, other plugins' and logged-out AJAX) or admin-post.php. After a lookup that failed or found
+  no parent, or a failed disconnect, they wait an hour before calling the API again. The waits live in one
+  option, `instawp_retry_after` (`array( key => expiry )`, keys `source_site_detail` and
+  `whitelabel_disconnect`). `v1/mark-parent` and `wp instawp staging-set` call the lookup with
+  `$force = true`, which skips the request check and the wait.
+- The old `?instawp_debug=1` switch on the parent lookup is gone. To see the stored parent, read the
+  `instawp_sync_parent_connect_data` option (WP-CLI or the Database Manager).
+- **Deactivating** the plugin cancels every Action Scheduler action in the `instawp-connect` group and the
+  CDN purge WP-Cron events, and removes any Database Manager copy. Settings and data stay; activating
+  again re-creates the jobs. A plugin update deactivates silently, which skips this.
+- The admin-bar menu check (`can_show_navbar()`) returns early for logged-out visitors before reading any
+  setting.
+
