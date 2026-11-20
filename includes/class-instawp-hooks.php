@@ -193,12 +193,17 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			// A dashboard that honoured iwp_code=1 sends a one-time code instead of the key and JWT.
 			$code = isset( $_REQUEST['code'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['code'] ) ) : '';
 			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				$credentials = instawp_redeem_connect_code( $code );
-
 				$redirect = admin_url( 'tools.php?page=instawp' );
-				if ( ! empty( $credentials ) ) {
-					instawp_create_api_connect( $credentials['api_key'], $credentials['jwt'] );
-				} else {
+				try {
+					$credentials = instawp_redeem_connect_code( $code );
+
+					if ( ! empty( $credentials ) ) {
+						instawp_create_api_connect( $credentials['api_key'], $credentials['jwt'] );
+					} else {
+						$redirect = add_query_arg( 'instawp-connect-failed', '1', $redirect );
+					}
+				} catch ( \Throwable $e ) {
+					instawp_log_throwable( 'Connect with code', $e );
 					$redirect = add_query_arg( 'instawp-connect-failed', '1', $redirect );
 				}
 

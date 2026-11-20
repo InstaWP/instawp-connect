@@ -646,44 +646,50 @@ if ( ! function_exists( 'instawp_redeem_connect_code' ) ) {
 	 * @return array{api_key: string, jwt: string}|array Empty on any failure.
 	 */
 	function instawp_redeem_connect_code( $code ) {
-		if ( ! is_string( $code ) || ! preg_match( '/^[A-Za-z0-9]{48}$/', $code ) ) {
+		try {
+			if ( ! is_string( $code ) || ! preg_match( '/^[A-Za-z0-9]{48}$/', $code ) ) {
+				return array();
+			}
+
+			$api_domain = rtrim( Helper::get_api_domain(), '/' );
+			if ( empty( $api_domain ) || ( ! defined( 'INSTAWP_API_DOMAIN' ) && ! instawp_is_allowed_api_domain( $api_domain ) ) ) {
+				Helper::add_error_log( array( 'message' => 'Connect code exchange skipped: API domain not allowed' ) );
+
+				return array();
+			}
+
+			$response = wp_remote_post(
+				$api_domain . '/api/v2/connect/token',
+				array(
+					'timeout' => 30,
+					'headers' => array( 'Accept' => 'application/json' ),
+					'body'    => array( 'code' => $code ),
+				)
+			);
+
+			$status = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+			$body   = is_wp_error( $response ) ? array() : json_decode( wp_remote_retrieve_body( $response ), true );
+			$data   = is_array( $body ) && isset( $body['data'] ) && is_array( $body['data'] ) ? $body['data'] : array();
+
+			if ( 200 !== $status || empty( $data['api_key'] ) || empty( $data['jwt'] ) || ! is_string( $data['api_key'] ) || ! is_string( $data['jwt'] ) ) {
+				Helper::add_error_log( array(
+					'message' => 'Connect code exchange failed',
+					'status'  => $status,
+					'error'   => is_wp_error( $response ) ? $response->get_error_message() : '',
+				) );
+
+				return array();
+			}
+
+			return array(
+				'api_key' => $data['api_key'],
+				'jwt'     => $data['jwt'],
+			);
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Connect code exchange', $e );
+
 			return array();
 		}
-
-		$api_domain = rtrim( Helper::get_api_domain(), '/' );
-		if ( empty( $api_domain ) || ( ! defined( 'INSTAWP_API_DOMAIN' ) && ! instawp_is_allowed_api_domain( $api_domain ) ) ) {
-			Helper::add_error_log( array( 'message' => 'Connect code exchange skipped: API domain not allowed' ) );
-
-			return array();
-		}
-
-		$response = wp_remote_post(
-			$api_domain . '/api/v2/connect/token',
-			array(
-				'timeout' => 30,
-				'headers' => array( 'Accept' => 'application/json' ),
-				'body'    => array( 'code' => $code ),
-			)
-		);
-
-		$status = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
-		$body   = is_wp_error( $response ) ? array() : json_decode( wp_remote_retrieve_body( $response ), true );
-		$data   = is_array( $body ) && isset( $body['data'] ) && is_array( $body['data'] ) ? $body['data'] : array();
-
-		if ( 200 !== $status || empty( $data['api_key'] ) || empty( $data['jwt'] ) || ! is_string( $data['api_key'] ) || ! is_string( $data['jwt'] ) ) {
-			Helper::add_error_log( array(
-				'message' => 'Connect code exchange failed',
-				'status'  => $status,
-				'error'   => is_wp_error( $response ) ? $response->get_error_message() : '',
-			) );
-
-			return array();
-		}
-
-		return array(
-			'api_key' => $data['api_key'],
-			'jwt'     => $data['jwt'],
-		);
 	}
 }
 
@@ -698,28 +704,34 @@ if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
 	 * @return string|false Absolute path, or false when the folder cannot be created.
 	 */
 	function instawp_private_debug_log_file() {
-		$dir  = wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' );
-		$file = Option::get_option( 'instawp_debug_log_file' );
+		try {
+			$dir  = wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' );
+			$file = Option::get_option( 'instawp_debug_log_file' );
 
-		// Only a name this function made, directly in this site's folder: a stored value from another host
-		// (a migrated database) or anything else is replaced.
-		if ( ! is_string( $file ) || wp_normalize_path( dirname( $file ) ) !== $dir || ! instawp_is_private_debug_log_path( $file ) ) {
-			$file = $dir . '/debug-' . wp_generate_password( 32, false ) . '.log';
-			Option::update_option( 'instawp_debug_log_file', $file );
-		}
+			// Only a name this function made, directly in this site's folder: a stored value from another host
+			// (a migrated database) or anything else is replaced.
+			if ( ! is_string( $file ) || wp_normalize_path( dirname( $file ) ) !== $dir || ! instawp_is_private_debug_log_path( $file ) ) {
+				$file = $dir . '/debug-' . wp_generate_password( 32, false ) . '.log';
+				Option::update_option( 'instawp_debug_log_file', $file );
+			}
 
-		if ( ! wp_mkdir_p( $dir ) ) {
+			if ( ! wp_mkdir_p( $dir ) ) {
+				return false;
+			}
+
+			if ( ! file_exists( $dir . '/index.php' ) ) {
+				@file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			}
+			if ( ! file_exists( $dir . '/.htaccess' ) ) {
+				@file_put_contents( $dir . '/.htaccess', "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			}
+
+			return $file;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Private debug log setup', $e );
+
 			return false;
 		}
-
-		if ( ! file_exists( $dir . '/index.php' ) ) {
-			@file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-		if ( ! file_exists( $dir . '/.htaccess' ) ) {
-			@file_put_contents( $dir . '/.htaccess', "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-
-		return $file;
 	}
 }
 
@@ -753,49 +765,55 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 	 * @return bool False when debug.log is still there with its entries (it could not be moved or removed).
 	 */
 	function instawp_move_default_debug_log( $target ) {
-		$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
+		try {
+			$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
 
-		if ( ! is_file( $default ) || is_link( $default ) ) {
-			return true;
-		}
-
-		// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
-		// otherwise the copy below creates a fresh private file this process can write.
-		if ( ! file_exists( $target ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
-			return true;
-		}
-
-		$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$out = $in ? @fopen( $target, 'ab' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$copied = false;
-		if ( $in && $out ) {
-			$max  = 5 * 1024 * 1024;
-			$stat = fstat( $in );
-			if ( is_array( $stat ) && $stat['size'] > $max && 0 === fseek( $in, -( $max + 1 ), SEEK_END ) ) {
-				fgets( $in );
+			if ( ! is_file( $default ) || is_link( $default ) ) {
+				return true;
 			}
-			$copied = false !== stream_copy_to_stream( $in, $out );
-		}
-		if ( $in ) {
-			fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-		}
-		if ( $out ) {
-			fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-		}
 
-		if ( ! $copied ) {
-			return false;
-		}
-		if ( @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
+			// otherwise the copy below creates a fresh private file this process can write.
+			if ( ! file_exists( $target ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
+				return true;
+			}
+
+			$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$out = $in ? @fopen( $target, 'ab' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$copied = false;
+			if ( $in && $out ) {
+				$max  = 5 * 1024 * 1024;
+				$stat = fstat( $in );
+				if ( is_array( $stat ) && $stat['size'] > $max && 0 === fseek( $in, -( $max + 1 ), SEEK_END ) ) {
+					fgets( $in );
+				}
+				$copied = false !== stream_copy_to_stream( $in, $out );
+			}
+			if ( $in ) {
+				fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+			if ( $out ) {
+				fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+
+			if ( ! $copied ) {
+				return false;
+			}
+			if ( @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+				return true;
+			}
+			$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $empty ) {
+				return false;
+			}
+			fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
 			return true;
-		}
-		$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		if ( ! $empty ) {
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Debug log move', $e );
+
 			return false;
 		}
-		fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
-		return true;
 	}
 }
 
@@ -812,29 +830,35 @@ if ( ! function_exists( 'instawp_can_use_private_debug_log' ) ) {
 	 * @return bool
 	 */
 	function instawp_can_use_private_debug_log( $file ) {
-		$existed = file_exists( $file );
-		$fh      = @fopen( $file, 'ab' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		if ( ! $fh ) {
+		try {
+			$existed = file_exists( $file );
+			$fh      = @fopen( $file, 'ab' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $fh ) {
+				return false;
+			}
+			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+			// Opening it for appending proved it is a writable file; the viewer also has to read it.
+			clearstatcache();
+			$usable = is_readable( $file );
+
+			$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
+			if ( $usable && is_file( $default ) && ! is_link( $default ) ) {
+				$usable = is_readable( $default ) && ( wp_is_writable( WP_CONTENT_DIR ) || wp_is_writable( $default ) );
+			}
+
+			// Remove the probe file this check created: the move must find no file there, so debug.log is
+			// renamed (all of it kept, same owner) rather than copied (only its last 5 MB).
+			if ( ! $existed ) {
+				@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			}
+
+			return $usable;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Private debug log check', $e );
+
 			return false;
 		}
-		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
-		// Opening it for appending proved it is a writable file; the viewer also has to read it.
-		clearstatcache();
-		$usable = is_readable( $file );
-
-		$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
-		if ( $usable && is_file( $default ) && ! is_link( $default ) ) {
-			$usable = is_readable( $default ) && ( wp_is_writable( WP_CONTENT_DIR ) || wp_is_writable( $default ) );
-		}
-
-		// Remove the probe file this check created: the move must find no file there, so debug.log is
-		// renamed (all of it kept, same owner) rather than copied (only its last 5 MB).
-		if ( ! $existed ) {
-			@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-		}
-
-		return $usable;
 	}
 }
 
@@ -847,31 +871,37 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 	 * @return string|false False when there is no log file.
 	 */
 	function instawp_current_debug_log_tail( $max_bytes = 2097152 ) {
-		$file   = WP_CONTENT_DIR . '/debug.log';
-		$stored = Option::get_option( 'instawp_debug_log_file' );
-		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
-			$file = WP_DEBUG_LOG;
-		} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
-			&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' ) ) {
-			// Debug logging is off again: the history is still in this site's private file. A stored name from
-			// another site (a cloned database) is not read.
-			$file = $stored;
-		}
+		try {
+			$file   = WP_CONTENT_DIR . '/debug.log';
+			$stored = Option::get_option( 'instawp_debug_log_file' );
+			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
+				$file = WP_DEBUG_LOG;
+			} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
+				&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' ) ) {
+				// Debug logging is off again: the history is still in this site's private file. A stored name from
+				// another site (a cloned database) is not read.
+				$file = $stored;
+			}
 
-		$fh = is_file( $file ) ? @fopen( $file, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		if ( ! $fh ) {
+			$fh = is_file( $file ) ? @fopen( $file, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $fh ) {
+				return false;
+			}
+
+			$stat = fstat( $fh );
+			if ( is_array( $stat ) && $stat['size'] > $max_bytes && 0 === fseek( $fh, -( $max_bytes + 1 ), SEEK_END ) ) {
+				fgets( $fh );
+			}
+			$text = stream_get_contents( $fh, $max_bytes );
+			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+			// Nothing, or one unterminated line longer than the limit, reads as no log rather than a blank page.
+			return ( false === $text || '' === $text ) ? false : $text;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Debug log read', $e );
+
 			return false;
 		}
-
-		$stat = fstat( $fh );
-		if ( is_array( $stat ) && $stat['size'] > $max_bytes && 0 === fseek( $fh, -( $max_bytes + 1 ), SEEK_END ) ) {
-			fgets( $fh );
-		}
-		$text = stream_get_contents( $fh, $max_bytes );
-		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
-		// Nothing, or one unterminated line longer than the limit, reads as no log rather than a blank page.
-		return ( false === $text || '' === $text ) ? false : $text;
 	}
 }
 
