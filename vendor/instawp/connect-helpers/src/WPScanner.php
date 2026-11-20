@@ -2,7 +2,6 @@
 
 namespace InstaWP\Connect\Helpers;
 
-use Exception;
 
 class WPScanner {
 
