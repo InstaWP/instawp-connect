@@ -1697,7 +1697,7 @@ include $file_path;';
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
 					}
-					error_log( 'Inventory fetch error. Response:' . json_encode( $inventory_data ) );
+					Helper::add_error_log( array( 'message' => 'Inventory fetch failed' ) );
 				}
 			}
 		} catch ( \Exception $e ) {

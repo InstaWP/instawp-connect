@@ -83,7 +83,7 @@ class instaWP {
 		if ( $value === 'on' ) {
 			$params = array(
 				'WP_DEBUG'         => true,
-				'WP_DEBUG_LOG'     => true,
+				'WP_DEBUG_LOG'     => $this->private_debug_log_target(),
 				'WP_DEBUG_DISPLAY' => false,
 			);
 		} else {
@@ -99,6 +99,40 @@ class instaWP {
 			$wp_config->set();
 		} catch ( \Exception $e ) {
 			error_log( $e->getMessage() );
+		}
+	}
+
+	/**
+	 * What WP_DEBUG_LOG is set to when debug logging is switched on.
+	 *
+	 * A custom path the site owner set themselves is kept. Otherwise the log goes to the plugin's private
+	 * file (see instawp_private_debug_log_file()), and the existing wp-content/debug.log is moved into it
+	 * so the InstaWP log viewer keeps the history. If the private file cannot be set up, the old behaviour
+	 * (true, wp-content/debug.log) is kept rather than leaving the site without a log.
+	 *
+	 * @return string|true
+	 */
+	private function private_debug_log_target() {
+		try {
+			$private_dir = wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs/';
+			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && '' !== WP_DEBUG_LOG
+				&& ! in_array( strtolower( WP_DEBUG_LOG ), array( 'true', 'false', '1', '0' ), true )
+				&& 0 !== strpos( wp_normalize_path( WP_DEBUG_LOG ), $private_dir ) ) {
+				return WP_DEBUG_LOG;
+			}
+
+			$file = instawp_private_debug_log_file();
+			if ( empty( $file ) ) {
+				return true;
+			}
+
+			instawp_move_default_debug_log( $file );
+
+			return $file;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Private debug log setup', $e );
+
+			return true;
 		}
 	}
 

@@ -379,7 +379,10 @@ class InstaWP_Sync_Parser {
 			wp_update_attachment_metadata( $id, $metadata );    
 			
 		} catch ( \Exception $e ) {
-			error_log( " Failed to get scaled image " . $e->getMessage() . " " . json_encode( $data ) );
+			Helper::add_error_log( array(
+				'message' => 'Scaled image generation failed',
+				'error'   => $e->getMessage(),
+			) );
 		}
 	}
 

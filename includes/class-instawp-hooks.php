@@ -189,6 +189,20 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					exit();
 				}
 			}
+
+			// A dashboard that honoured iwp_code=1 sends a one-time code instead of the key and JWT.
+			$code = isset( $_REQUEST['code'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['code'] ) ) : '';
+			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				$credentials = instawp_redeem_connect_code( $code );
+
+				if ( ! empty( $credentials ) ) {
+					instawp_create_api_connect( $credentials['api_key'], $credentials['jwt'] );
+				}
+
+				// Leave the code out of the address bar either way.
+				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+				exit();
+			}
 		}
 
 		public function handle_auto_login_request() {

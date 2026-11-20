@@ -128,7 +128,10 @@ class InstaWP_Ajax {
 		$response = Curl::do_curl( "migrates-v3/{$migrate_id}", array( 'migrate_key' => $migrate_key ) );
 
 		if ( isset( $response['success'] ) && $response['success'] !== true ) {
-			error_log( wp_json_encode( $response ) );
+			Helper::add_error_log( array(
+				'message' => 'Migration status check failed',
+				'error'   => Helper::get_args_option( 'message', $response ),
+			) );
 			wp_send_json_error( array( 'message' => Helper::get_args_option( 'message', $response ) ) );
 		}
 
@@ -418,7 +421,10 @@ class InstaWP_Ajax {
 			);
 			instawp_send_connect_log( 'pull-failed', wp_json_encode( $log_array ) );
 
-			error_log( wp_json_encode( $migrate_response ) );
+			Helper::add_error_log( array(
+				'message' => 'Pull migration could not be created',
+				'error'   => $migrate_response_message,
+			) );
 
 			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.', 'instawp-connect' ) : $migrate_response_message;
 
@@ -475,7 +481,7 @@ class InstaWP_Ajax {
 		);
 
 		if ( intval( $api_response_code ) === 404 ) {
-			$return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
+			$return_url      = urlencode( instawp_connect_return_url() ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
 			$api_domain      = Helper::get_api_domain();
 			$connect_api_url = $api_domain . '/authorize?source=connect_manage&return_url=' . $return_url;
 

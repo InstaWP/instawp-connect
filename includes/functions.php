@@ -501,7 +501,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			);
 
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
-				error_log( wp_json_encode( $response ) );
+				Helper::add_error_log( array(
+					'message' => 'Migration abort request failed',
+					'error'   => Helper::get_args_option( 'message', $response ),
+				) );
 			}
 		}
 
@@ -605,6 +608,159 @@ if ( ! function_exists( 'instawp_should_check_schedules' ) ) {
 		}
 
 		return is_admin() && ! wp_doing_ajax();
+	}
+}
+
+if ( ! function_exists( 'instawp_connect_return_url' ) ) {
+	/**
+	 * Where the InstaWP dashboard sends the browser back after the user authorizes this site.
+	 *
+	 * `iwp_code=1` asks the dashboard for a one-time code instead of putting the API key and a JWT in this
+	 * URL, where browser history and access logs would keep them. The code is traded server-to-server in
+	 * instawp_redeem_connect_code(). Dashboards that predate the marker ignore it and send the old
+	 * `access_token`, which InstaWP_Hooks::generate_api_key() still accepts.
+	 *
+	 * @return string
+	 */
+	function instawp_connect_return_url() {
+		return add_query_arg(
+			array(
+				'page'          => 'instawp',
+				'instawp-nonce' => wp_create_nonce( 'instawp_connect_nonce' ),
+				'iwp_code'      => '1',
+			),
+			admin_url( 'tools.php' )
+		);
+	}
+}
+
+if ( ! function_exists( 'instawp_redeem_connect_code' ) ) {
+	/**
+	 * Trade the one-time code from the authorize redirect for the API key and JWT.
+	 *
+	 * Called directly rather than through Curl::do_curl(), which refuses to run without an API key; this
+	 * is the call that obtains one.
+	 *
+	 * @param string $code The code from the redirect.
+	 *
+	 * @return array{api_key: string, jwt: string}|array Empty on any failure.
+	 */
+	function instawp_redeem_connect_code( $code ) {
+		if ( ! is_string( $code ) || ! preg_match( '/^[A-Za-z0-9]{48}$/', $code ) ) {
+			return array();
+		}
+
+		$api_domain = rtrim( Helper::get_api_domain(), '/' );
+		if ( empty( $api_domain ) || ( ! defined( 'INSTAWP_API_DOMAIN' ) && ! instawp_is_allowed_api_domain( $api_domain ) ) ) {
+			Helper::add_error_log( array( 'message' => 'Connect code exchange skipped: API domain not allowed' ) );
+
+			return array();
+		}
+
+		$response = wp_remote_post(
+			$api_domain . '/api/v2/connect/token',
+			array(
+				'timeout' => 30,
+				'headers' => array( 'Accept' => 'application/json' ),
+				'body'    => array( 'code' => $code ),
+			)
+		);
+
+		$status = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+		$body   = is_wp_error( $response ) ? array() : json_decode( wp_remote_retrieve_body( $response ), true );
+		$data   = is_array( $body ) && isset( $body['data'] ) && is_array( $body['data'] ) ? $body['data'] : array();
+
+		if ( 200 !== $status || empty( $data['api_key'] ) || empty( $data['jwt'] ) || ! is_string( $data['api_key'] ) || ! is_string( $data['jwt'] ) ) {
+			Helper::add_error_log( array(
+				'message' => 'Connect code exchange failed',
+				'status'  => $status,
+				'error'   => is_wp_error( $response ) ? $response->get_error_message() : '',
+			) );
+
+			return array();
+		}
+
+		return array(
+			'api_key' => $data['api_key'],
+			'jwt'     => $data['jwt'],
+		);
+	}
+}
+
+if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
+	/**
+	 * The private file WP_DEBUG_LOG points to when debug logging is switched on from the plugin.
+	 *
+	 * WP_DEBUG_LOG = true writes wp-content/debug.log, a URL that is the same on every site. The private
+	 * file lives in wp-content/instawp-logs/ with an unguessable name, and the folder gets index.php and
+	 * .htaccess deny files as a second layer. The name is stored so it stays the same across toggles.
+	 *
+	 * @return string|false Absolute path, or false when the folder cannot be created.
+	 */
+	function instawp_private_debug_log_file() {
+		$dir  = wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs';
+		$file = Option::get_option( 'instawp_debug_log_file' );
+
+		if ( ! is_string( $file ) || 0 !== strpos( wp_normalize_path( $file ), $dir . '/' ) ) {
+			$file = $dir . '/debug-' . wp_generate_password( 32, false ) . '.log';
+			Option::update_option( 'instawp_debug_log_file', $file );
+		}
+
+		if ( ! wp_mkdir_p( $dir ) ) {
+			return false;
+		}
+
+		if ( ! file_exists( $dir . '/index.php' ) ) {
+			@file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+		if ( ! file_exists( $dir . '/.htaccess' ) ) {
+			@file_put_contents( $dir . '/.htaccess', "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+
+		return $file;
+	}
+}
+
+if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
+	/**
+	 * Bring the existing wp-content/debug.log into the private file, so the InstaWP log viewer keeps the
+	 * history and the public copy is gone.
+	 *
+	 * A rename is instant at any size. If it is not possible (permissions, or the private file already
+	 * exists), only the last 5 MB is copied over and the old file is left alone.
+	 *
+	 * @param string $target The private log file.
+	 *
+	 * @return void
+	 */
+	function instawp_move_default_debug_log( $target ) {
+		$default = wp_normalize_path( WP_CONTENT_DIR ) . '/debug.log';
+
+		if ( ! is_file( $default ) || is_link( $default ) ) {
+			return;
+		}
+
+		if ( ! file_exists( $target ) && @rename( $default, $target ) ) {
+			return;
+		}
+
+		$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$out = $in ? @fopen( $target, 'ab' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( $in && $out ) {
+			$max  = 5 * 1024 * 1024;
+			$stat = fstat( $in );
+			if ( is_array( $stat ) && $stat['size'] > $max ) {
+				fseek( $in, -( $max + 1 ), SEEK_END );
+				fgets( $in );
+			}
+			stream_copy_to_stream( $in, $out );
+		}
+		if ( $in ) {
+			fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		}
+		if ( $out ) {
+			fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		}
 	}
 }
 
