@@ -156,14 +156,17 @@ Sites are authenticated using:
 
 Background work added or changed for performance runs inside `try { } catch ( \Throwable )`, so an
 unexpected error is logged (`instawp_log_throwable()` → `Helper::add_error_log()`, the plugin's error log)
-and never breaks the request it runs in:
+and never breaks the request it runs in. Each distinct error is logged at most once an hour (option
+`instawp_throwable_log_seen`), so a failure that repeats on every request cannot push every other entry out
+of the short error log:
 
 - queuing an activity-log send after an event, the loopback send, the deactivation-time send;
 - the recurring-job checks (heartbeat, activity log, migrate-file cleanup) on `init`;
-- the staging parent lookup and the white-label trial disconnect on `admin_init` (a failed lookup waits
-  an hour like an empty one);
-- the deactivation cleanup (jobs, CDN cron, Database Manager copy) and the disconnect call, so the plugin
-  always deactivates;
+- the staging parent lookup and the white-label trial disconnect on `admin_init` (after an error both wait
+  an hour, like after an empty or failed result; a forced lookup from `wp instawp staging-set` prints a
+  WP-CLI warning);
+- every step of the deactivation hook (permalink reset, option cleanup, jobs, CDN cron, Database Manager
+  copy, disconnect call), so the plugin always deactivates;
 - the one-query load of the connection settings at plugin load (on failure each option is read on its
   own, as before).
 

@@ -546,7 +546,32 @@ if ( ! function_exists( 'instawp_log_throwable' ) ) {
 	 * @return void
 	 */
 	function instawp_log_throwable( $where, $e ) {
+		static $logged = array();
+
 		try {
+			// The error log keeps only its last few entries, and a failure that repeats on every request would
+			// push everything else out. Log each distinct error at most once an hour (one option holding
+			// array( key => expiry ), expired keys pruned), and once per process.
+			$key = md5( $where . '|' . $e->getMessage() );
+			if ( isset( $logged[ $key ] ) ) {
+				return;
+			}
+			$logged[ $key ] = true;
+
+			$now  = time();
+			$seen = Option::get_option( 'instawp_throwable_log_seen', array() );
+			$seen = is_array( $seen ) ? $seen : array();
+			if ( isset( $seen[ $key ] ) && (int) $seen[ $key ] > $now ) {
+				return;
+			}
+			foreach ( $seen as $seen_key => $expiry ) {
+				if ( (int) $expiry <= $now ) {
+					unset( $seen[ $seen_key ] );
+				}
+			}
+			$seen[ $key ] = $now + HOUR_IN_SECONDS;
+			Option::update_option( 'instawp_throwable_log_seen', $seen );
+
 			Helper::add_error_log( array(
 				'message' => $where . ' failed',
 				'error'   => $e->getMessage(),
@@ -1042,7 +1067,17 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			instawp_retry_later( 'source_site_detail', empty( $parent_data ) ? HOUR_IN_SECONDS : 0 );
 		} catch ( \Throwable $e ) {
 			instawp_log_throwable( 'Staging parent lookup', $e );
-			instawp_retry_later( 'source_site_detail', HOUR_IN_SECONDS );
+
+			try {
+				instawp_retry_later( 'source_site_detail', HOUR_IN_SECONDS );
+			} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+				// The wait is only an optimisation.
+			}
+
+			// A forced lookup comes from WP-CLI (staging-set): say it failed rather than exit silently.
+			if ( true === $force && defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
+				WP_CLI::warning( 'Staging parent lookup failed: ' . $e->getMessage() );
+			}
 		}
 	}
 }

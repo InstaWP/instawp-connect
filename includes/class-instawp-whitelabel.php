@@ -44,6 +44,13 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				$this->maybe_disconnect_whitelabel_site();
 			} catch ( \Throwable $e ) {
 				instawp_log_throwable( 'White-label trial disconnect', $e );
+
+				// Try again in an hour, not on every admin page load (e.g. a malformed plan date fails every time).
+				try {
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
+				} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// The wait is only an optimisation.
+				}
 			}
 		}
 
@@ -76,17 +83,17 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				return;
 			}
 
+			// A failed attempt (API failure or an error above) is retried after an hour, not on the next admin request.
+			if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
+				return;
+			}
+
 			$plan_activated_date = new DateTime( $connect_plan['plan_timestamp'] );
 			$today_date          = new DateTime( current_time( 'mysql' ) );
 			$diff                = $today_date->diff( $plan_activated_date );
 			$remaining_days      = $trial - $diff->days;
 
 			if ( $remaining_days <= 0 ) {
-				// A failed disconnect is retried after an hour, not on the next admin request.
-				if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
-					return;
-				}
-
 				$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
 
 				if ( empty( $api_response['success'] ) ) {
