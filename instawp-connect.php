@@ -58,7 +58,11 @@ global $instawp_plugin;
 // on most sites) are remembered as missing by the same query, so they cost no extra query either.
 // WordPress 6.4+; older versions read them one by one as before.
 if ( function_exists( 'wp_prime_option_caches' ) ) {
-	wp_prime_option_caches( array( 'instawp_api_options', 'instawp_activity_log', 'instawp_is_staging', 'instawp_parent_is_on_local' ) );
+	try {
+		wp_prime_option_caches( array( 'instawp_api_options', 'instawp_activity_log', 'instawp_is_staging', 'instawp_parent_is_on_local' ) );
+	} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		// Only an optimisation: on failure each option is read on its own as before.
+	}
 }
 
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
@@ -105,18 +109,31 @@ function instawp_plugin_deactivate() {
 	// (if another plugin keeps it running) would record each one as failed. Settings and data are kept;
 	// activating again re-creates the jobs. Not reached on a plugin update: WordPress deactivates
 	// silently during an update, which skips this hook.
-	if ( function_exists( 'as_unschedule_all_actions' ) ) {
-		as_unschedule_all_actions( '', array(), 'instawp-connect' );
+	// A failure here must never stop the plugin from deactivating.
+	try {
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( '', array(), 'instawp-connect' );
+		}
+		wp_unschedule_hook( 'instawp_cdn_stock_daily_purge' );
+		wp_unschedule_hook( 'instawp_cdn_purge_deferred' );
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation job cleanup', $e );
 	}
-	wp_unschedule_hook( 'instawp_cdn_stock_daily_purge' );
-	wp_unschedule_hook( 'instawp_cdn_purge_deferred' );
 
 	// Remove any Database Manager copy now instead of leaving it until the plugin is activated again.
-	do_action( 'instawp_clean_database_manager' );
+	try {
+		do_action( 'instawp_clean_database_manager' );
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation Database Manager cleanup', $e );
+	}
 
-	$connect_id = instawp_get_connect_id();
-	if ( ! empty( $connect_id ) ) {
-		Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+	try {
+		$connect_id = instawp_get_connect_id();
+		if ( ! empty( $connect_id ) ) {
+			Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+		}
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation disconnect', $e );
 	}
 }
 

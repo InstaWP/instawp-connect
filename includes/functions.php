@@ -535,6 +535,29 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_log_throwable' ) ) {
+	/**
+	 * Record an error caught by a guard that keeps background work (scheduling, API calls, cleanup)
+	 * from breaking the request it runs in. Never throws itself.
+	 *
+	 * @param string     $where What was running.
+	 * @param \Throwable $e     The caught error.
+	 *
+	 * @return void
+	 */
+	function instawp_log_throwable( $where, $e ) {
+		try {
+			Helper::add_error_log( array(
+				'message' => $where . ' failed',
+				'error'   => $e->getMessage(),
+				'where'   => basename( $e->getFile() ) . ':' . $e->getLine(),
+			) );
+		} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			// Logging must not break the request either.
+		}
+	}
+}
+
 if ( ! function_exists( 'instawp_should_check_schedules' ) ) {
 	/**
 	 * Whether this request should make sure the plugin's recurring jobs are scheduled.
@@ -1010,11 +1033,17 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			return;
 		}
 
-		$connect_id  = instawp_get_connect_id();
-		$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
+		// Runs on admin page loads: an error here must not break the page.
+		try {
+			$connect_id  = instawp_get_connect_id();
+			$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
 
-		Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
-		instawp_retry_later( 'source_site_detail', empty( $parent_data ) ? HOUR_IN_SECONDS : 0 );
+			Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
+			instawp_retry_later( 'source_site_detail', empty( $parent_data ) ? HOUR_IN_SECONDS : 0 );
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Staging parent lookup', $e );
+			instawp_retry_later( 'source_site_detail', HOUR_IN_SECONDS );
+		}
 	}
 }
 

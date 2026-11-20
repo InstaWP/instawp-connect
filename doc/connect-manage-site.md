@@ -152,3 +152,19 @@ Sites are authenticated using:
 - The admin-bar menu check (`can_show_navbar()`) returns early for logged-out visitors before reading any
   setting.
 
+## Error guards
+
+Background work added or changed for performance runs inside `try { } catch ( \Throwable )`, so an
+unexpected error is logged (`instawp_log_throwable()` → `Helper::add_error_log()`, the plugin's error log)
+and never breaks the request it runs in:
+
+- queuing an activity-log send after an event, the loopback send, the deactivation-time send;
+- the recurring-job checks (heartbeat, activity log, migrate-file cleanup) on `init`;
+- the staging parent lookup and the white-label trial disconnect on `admin_init` (a failed lookup waits
+  an hour like an empty one);
+- the deactivation cleanup (jobs, CDN cron, Database Manager copy) and the disconnect call, so the plugin
+  always deactivates;
+- the one-query load of the connection settings at plugin load (on failure each option is read on its
+  own, as before).
+
+PHP fatals that are not `Throwable` (out of memory, time limit) cannot be caught.

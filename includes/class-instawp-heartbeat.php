@@ -24,6 +24,15 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function register_events() {
+			// Runs on init: a scheduling error must not break the request.
+			try {
+				$this->schedule_events();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Heartbeat schedule check', $e );
+			}
+		}
+
+		private function schedule_events() {
 			if ( ! instawp_should_check_schedules() ) {
 				return;
 			}

@@ -39,6 +39,15 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 		}
 
 		public function disconnect_whitelabel_site() {
+			// Runs on admin_init: an error here (a malformed plan date, an API failure) must not break wp-admin.
+			try {
+				$this->maybe_disconnect_whitelabel_site();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'White-label trial disconnect', $e );
+			}
+		}
+
+		private function maybe_disconnect_whitelabel_site() {
 			// admin_init also fires for AJAX, Heartbeat and logged-out requests; only an admin's page load does this.
 			if ( ! instawp_is_connect_whitelabelled() || ! instawp_is_admin_page_load() ) {
 				return;

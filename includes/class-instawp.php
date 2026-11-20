@@ -105,8 +105,12 @@ class instaWP {
 	public function register_actions() {
 		$this->unschedule_large_files_list();
 
-		if ( instawp_should_check_schedules() && ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
+		try {
+			if ( instawp_should_check_schedules() && ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
+			}
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Migrate-file cleanup schedule check', $e );
 		}
 	}
 

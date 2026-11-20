@@ -73,6 +73,15 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
         public function register_events() {
+			// Runs on init: a scheduling error must not break the request.
+			try {
+				$this->schedule_events();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Activity log schedule check', $e );
+			}
+		}
+
+		private function schedule_events() {
 			if ( ! instawp()->activity_log_enabled || ! instawp_should_check_schedules() ) {
 				return;
 			}
@@ -503,10 +512,16 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			// "Instantly" sends everything; "every X minutes" leaves non-critical rows to the recurring send. While
 			// the plugin is being deactivated the recurring send is gone, so every event goes to the final send.
-			if ( defined( 'INSTAWP_DEACTIVATING' ) || 'instantly' === $activity_log_interval ) {
-				$this->queue_send( false );
-			} elseif ( 'critical' === $args['severity'] ) {
-				$this->queue_send( true );
+			// Queuing touches Action Scheduler and makes a loopback request; neither may break the request that
+			// logged the event (the row is already saved and goes out with a later send).
+			try {
+				if ( defined( 'INSTAWP_DEACTIVATING' ) || 'instantly' === $activity_log_interval ) {
+					$this->queue_send( false );
+				} elseif ( 'critical' === $args['severity'] ) {
+					$this->queue_send( true );
+				}
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Activity log queue', $e );
 			}
 		}
 
@@ -619,7 +634,11 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		public function ajax_send_log_data() {
 			ignore_user_abort( true );
 
-			$this->send_log_data( ! empty( $_POST['critical'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			try {
+				$this->send_log_data( ! empty( $_POST['critical'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Activity log send (loopback)', $e );
+			}
 
 			wp_die( '', '', array( 'response' => 200 ) );
 		}
