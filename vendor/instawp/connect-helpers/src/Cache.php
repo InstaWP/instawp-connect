@@ -340,7 +340,7 @@ class Cache {
 							$message = 'Pullzone ID not found.';
 						}
 					}
-				} catch ( \Exception $e ) {
+				} catch ( \Throwable $e ) {
 					$message = 'Purge failed: ' . esc_html( $e->getMessage() );
 				}
 			}

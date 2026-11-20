@@ -231,7 +231,7 @@ class Installer {
             } else {
                 $error_message = esc_html( 'Provided URL is not valid!' );
             }
-        } catch( \Exception $e ) {
+        } catch( \Throwable $e ) {
             $error_message = $e->getMessage();
         }
 

@@ -179,7 +179,7 @@ class AutoUpdatePluginFromGitHub {
 				}
 			}
 			wp_clean_plugins_cache();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			error_log( 'After install exception ' . $e->getMessage() );
 		}
 
@@ -218,7 +218,7 @@ class AutoUpdatePluginFromGitHub {
 					wp_clean_plugins_cache();
 					wp_update_plugins();
 				}
-			} catch ( \Exception $e ) {
+			} catch ( \Throwable $e ) {
 				error_log( 'Update check exception ' . $e->getMessage() );
 			}
 		}
