@@ -116,9 +116,15 @@ class instaWP {
 				$now  = isset( $read['wp-config']['WP_DEBUG_LOG'] ) ? $read['wp-config']['WP_DEBUG_LOG'] : null;
 
 				if ( is_string( $now ) && wp_normalize_path( $now ) === wp_normalize_path( $log_target ) ) {
-					instawp_move_default_debug_log( $log_target );
-					// This request loaded the old setting; send its own later errors to the new file too.
-					@ini_set( 'error_log', $log_target ); // phpcs:ignore WordPress.PHP.IniSet.Risky
+					if ( instawp_move_default_debug_log( $log_target ) ) {
+						// This request loaded the old setting; send its own later errors to the new file too.
+						@ini_set( 'error_log', $log_target ); // phpcs:ignore WordPress.PHP.IniSet.Risky
+					} else {
+						// The old log could not be moved: go back to debug.log, where PHP keeps writing
+						// alongside the history, rather than splitting the log over two files.
+						( new WPConfig( array( 'WP_DEBUG_LOG' => true ) ) )->set();
+						Helper::add_error_log( array( 'title' => 'instawp: debug.log could not be moved, WP_DEBUG_LOG left on debug.log' ) );
+					}
 				}
 			}
 		} catch ( \Throwable $e ) {
@@ -133,8 +139,9 @@ class instaWP {
 	 * file (see instawp_private_debug_log_file()); toggle_wp_debug() then moves the existing
 	 * wp-content/debug.log into it so the InstaWP log viewer keeps the history. A path that is the default
 	 * debug.log, or a private file of this plugin (including one from another host after a migration), is
-	 * not a custom path. If the private file cannot be set up, the old behaviour (true,
-	 * wp-content/debug.log) is kept rather than leaving the site without a log.
+	 * not a custom path. If the private file cannot be set up or used (see
+	 * instawp_can_use_private_debug_log()), the old behaviour (true, wp-content/debug.log) is kept: logging
+	 * must never stop.
 	 *
 	 * @return string|true
 	 */
@@ -147,8 +154,24 @@ class instaWP {
 				return WP_DEBUG_LOG;
 			}
 
+			// A web request runs as the website's own user, so the checks below hold for the site. Under WP-CLI
+			// the switch can run as another user (e.g. root, or a deploy user sharing a group with the web
+			// server): a file it creates may then not be writable for the website, and logging would stop. So
+			// under WP-CLI the private file is used only when the runner owns wp-content and nobody else can
+			// write there, which means the website runs as that same user. Anything unknown keeps debug.log.
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				if ( ! function_exists( 'posix_geteuid' ) ) {
+					return true;
+				}
+				$owner = @fileowner( WP_CONTENT_DIR );
+				$perms = @fileperms( WP_CONTENT_DIR );
+				if ( false === $owner || false === $perms || posix_geteuid() !== $owner || 0 !== ( $perms & 0022 ) ) {
+					return true;
+				}
+			}
+
 			$file = instawp_private_debug_log_file();
-			if ( empty( $file ) ) {
+			if ( empty( $file ) || ! instawp_can_use_private_debug_log( $file ) ) {
 				return true;
 			}
 

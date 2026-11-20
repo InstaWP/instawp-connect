@@ -75,7 +75,14 @@ on servers that ignore `.htaccess` the unguessable name is the protection.
   shows this site's private file history (never a stored name from another site); with no log it says so.
 - `InstaWP_Tools::cli_archive_wordpress_files()` leaves `wp-content/instawp-logs/` out of the archive, as it
   already did for `debug.log`.
-- If the private folder cannot be created, the old behaviour (`true`) is used rather than no log at all.
+- Logging must never stop, so the private file is used only after checks made **before** anything changes
+  (`instawp_can_use_private_debug_log()`): the file is created and must be readable and writable, and an
+  existing `debug.log` must be readable and removable. Under WP-CLI the switch must also run as the owner of
+  `wp-content`, `wp-content` must not be group- or world-writable, and PHP's posix functions must be
+  available, so the website is known to run as the same user (a root- or deploy-user-run switch could create a
+  file the website cannot write). If any check fails, or the
+  folder cannot be created, the old behaviour (`true`, `debug.log`) is used. If moving `debug.log` still fails
+  after `wp-config.php` was updated, `WP_DEBUG_LOG` is set back to `true` and the failure is logged.
 - Switching debug logging off sets `WP_DEBUG_LOG` to `false`, as before.
 - Sites that already have debug logging on keep their setup until it is switched again; the plugin does not
   rewrite `wp-config.php` on update.

@@ -750,17 +750,19 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 	 *
 	 * @param string $target The private log file.
 	 *
-	 * @return void
+	 * @return bool False when debug.log is still there with its entries (it could not be moved or removed).
 	 */
 	function instawp_move_default_debug_log( $target ) {
 		$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
 
 		if ( ! is_file( $default ) || is_link( $default ) ) {
-			return;
+			return true;
 		}
 
-		if ( ! file_exists( $target ) && @rename( $default, $target ) ) {
-			return;
+		// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
+		// otherwise the copy below creates a fresh private file this process can write.
+		if ( ! file_exists( $target ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
+			return true;
 		}
 
 		$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
@@ -781,12 +783,58 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 			fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		}
 
-		if ( $copied && ! @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-			$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-			if ( $empty ) {
-				fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-			}
+		if ( ! $copied ) {
+			return false;
 		}
+		if ( @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			return true;
+		}
+		$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $empty ) {
+			return false;
+		}
+		fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'instawp_can_use_private_debug_log' ) ) {
+	/**
+	 * Whether switching WP_DEBUG_LOG to the private file can work, checked before anything is changed.
+	 *
+	 * The file is created and must be readable and writable, or PHP would drop every entry. An existing
+	 * wp-content/debug.log must be readable and removable (wp-content writable, or the file itself writable
+	 * so it can be emptied), or its history would stay in a file the viewer no longer reads.
+	 *
+	 * @param string $file The private log file.
+	 *
+	 * @return bool
+	 */
+	function instawp_can_use_private_debug_log( $file ) {
+		$existed = file_exists( $file );
+		$fh      = @fopen( $file, 'ab' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $fh ) {
+			return false;
+		}
+		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		// Opening it for appending proved it is a writable file; the viewer also has to read it.
+		clearstatcache();
+		$usable = is_readable( $file );
+
+		$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
+		if ( $usable && is_file( $default ) && ! is_link( $default ) ) {
+			$usable = is_readable( $default ) && ( wp_is_writable( WP_CONTENT_DIR ) || wp_is_writable( $default ) );
+		}
+
+		// Remove the probe file this check created: the move must find no file there, so debug.log is
+		// renamed (all of it kept, same owner) rather than copied (only its last 5 MB).
+		if ( ! $existed ) {
+			@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
+
+		return $usable;
 	}
 }
 
