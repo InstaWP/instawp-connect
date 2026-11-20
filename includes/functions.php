@@ -985,9 +985,9 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 	 * that failed or found nothing it waits an hour: before, a staging site whose parent could not be
 	 * found called the API on every admin_init, including each Heartbeat tick and logged-out AJAX.
 	 *
-	 * @param bool $force Look up now, ignoring the request type and the wait. Used right after the site is
-	 *                    marked as staging (v1/mark-parent, WP-CLI), when instawp()->is_staging still holds
-	 *                    the value read before the flag was set.
+	 * @param bool $force Look up now, ignoring the request type and the wait. Used by WP-CLI right after the
+	 *                    site is marked as staging, when instawp()->is_staging still holds the value read
+	 *                    before the flag was set.
 	 *
 	 * @return void
 	 */

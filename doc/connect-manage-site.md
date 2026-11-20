@@ -130,8 +130,9 @@ Sites are authenticated using:
   (Heartbeat, other plugins' and logged-out AJAX) or admin-post.php. After a lookup that failed or found
   no parent, or a failed disconnect, they wait an hour before calling the API again. The waits live in one
   option, `instawp_retry_after` (`array( key => expiry )`, keys `source_site_detail` and
-  `whitelabel_disconnect`). `v1/mark-parent` and `wp instawp staging-set` call the lookup with
-  `$force = true`, which skips the request check and the wait.
+  `whitelabel_disconnect`). `wp instawp staging-set` calls the lookup with `$force = true`, which skips
+  the request check and the wait. `v1/mark-staging` only clears the wait: the platform records the link
+  after that request answers, so the lookup runs on the next admin page load.
 - The old `?instawp_debug=1` switch on the parent lookup is gone. To see the stored parent, read the
   `instawp_sync_parent_connect_data` option (WP-CLI or the Database Manager).
 - **Deactivating** the plugin cancels every Action Scheduler action in the `instawp-connect` group and the

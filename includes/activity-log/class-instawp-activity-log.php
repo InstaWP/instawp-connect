@@ -39,10 +39,10 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		/** admin-ajax action of the loopback that runs a queued send. */
 		const SEND_AJAX_ACTION = 'instawp_send_activity_log';
 
-		/** Sends already queued in this request. */
+		/** When this process last queued a full / critical-only send (0 = not yet). */
 		private static $send_queued = array(
-			'all'      => false,
-			'critical' => false,
+			'all'      => 0,
+			'critical' => 0,
 		);
 
 		/** Value of the send lock while this request holds it, '' otherwise. */
@@ -95,6 +95,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
         public function clear_action() {
             as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
+            as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array( true ), 'instawp-connect' );
         }
 
 		/**
@@ -160,9 +161,13 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				return;
 			}
 
-			// Claim the slot before the first request so concurrent events skip instead of sending the same rows.
-			$state['next_send'] = $now + self::SEND_THROTTLE;
-			$this->save_send_state( $state );
+			// A full send claims the throttle slot. A critical-only send does not: it is not throttled, the lock
+			// already keeps runs apart, and otherwise anyone could hold back every normal send by repeatedly
+			// requesting a critical send through the loopback endpoint.
+			if ( ! $critical ) {
+				$state['next_send'] = $now + self::SEND_THROTTLE;
+				$this->save_send_state( $state );
+			}
 
 			$this->trim_pending_rows();
 
@@ -220,7 +225,11 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					break;
 				}
 
-				$this->refresh_send_lock();
+				// Lost the lock (taken over as stale): stop without touching the send state, so the new holder
+				// alone sends what is left.
+				if ( ! $this->refresh_send_lock() ) {
+					return;
+				}
 			}
 
 			$state['failures']    = 0;
@@ -268,20 +277,26 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		/**
 		 * Move the held lock's time forward, so a long send is not mistaken for a dead one.
 		 *
-		 * @return void
+		 * @return bool Whether this request still holds the lock.
 		 */
 		private function refresh_send_lock() {
 			global $wpdb;
 
 			if ( '' === $this->send_lock ) {
-				return;
+				return false;
 			}
 
 			$value = time() . ':' . wp_generate_uuid4();
 			$moved = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $value, self::SEND_LOCK_OPTION, $this->send_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			if ( 1 === (int) $moved ) {
-				$this->send_lock = $value;
+			if ( 1 !== (int) $moved ) {
+				$this->send_lock = '';
+
+				return false;
 			}
+
+			$this->send_lock = $value;
+
+			return true;
 		}
 
 		/**
@@ -485,18 +500,21 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * @return void
 		 */
 		private function queue_send( $critical_only ) {
+			// At most once per SEND_THROTTLE per process, so a bulk action makes one send instead of hundreds
+			// while a long-running process (WP-CLI, cron) still queues a send for rows it logs later.
 			// A full send also covers critical rows.
-			if ( self::$send_queued['all'] || ( $critical_only && self::$send_queued['critical'] ) ) {
+			$now    = time();
+			$queued = max( self::$send_queued['all'], $critical_only ? self::$send_queued['critical'] : 0 );
+			if ( $queued && $now - $queued < self::SEND_THROTTLE ) {
 				return;
 			}
-			self::$send_queued[ $critical_only ? 'critical' : 'all' ] = true;
+			self::$send_queued[ $critical_only ? 'critical' : 'all' ] = $now;
 
 			if ( ! instawp_get_connect_id() ) {
 				return;
 			}
 
 			$state   = $this->get_send_state();
-			$now     = time();
 			$send_at = max( $now, $state['retry_after'], $critical_only ? 0 : $state['next_send'] );
 
 			$this->schedule_follow_up( $send_at, $critical_only );
