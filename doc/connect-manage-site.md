@@ -6,6 +6,11 @@ Site connection and management features for linking WordPress sites to InstaWP a
 
 One-time connection setup links a WordPress site to an InstaWP account via API key. Once connected, remote management capabilities are available.
 
+The connection settings read on every request (`instawp_api_options`, `instawp_activity_log`,
+`instawp_is_staging`, `instawp_parent_is_on_local`) are non-autoloaded, so the main plugin file loads
+them in one query with `wp_prime_option_caches()` (WordPress 6.4+). That query also records the ones
+that do not exist, so a missing option costs no extra query.
+
 ## Key Files
 
 - `includes/apis/class-instawp-rest-api-manage.php` - Management endpoints
