@@ -507,6 +507,14 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * @return void
 		 */
 		private function queue_send( $critical_only ) {
+			// This request deactivates the plugin, so no loopback or queued action will run afterwards (and a
+			// queued action would be left behind). Send now, inside the request, as before.
+			if ( defined( 'INSTAWP_DEACTIVATING' ) ) {
+				$this->send_log_data( $critical_only );
+
+				return;
+			}
+
 			// At most once per SEND_THROTTLE per process, so a bulk action makes one send instead of hundreds
 			// while a long-running process (WP-CLI, cron) still queues a send for rows it logs later.
 			// A full send also covers critical rows.

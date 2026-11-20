@@ -84,6 +84,10 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
+	// Read by the activity log: events logged later in this request (the plugin_deactivated event fires on
+	// deactivated_plugin, after this hook) are sent straight away, since nothing will run a queued send.
+	defined( 'INSTAWP_DEACTIVATING' ) || define( 'INSTAWP_DEACTIVATING', true );
+
 	InstaWP_Tools::instawp_reset_permalink();
 	Option::delete_option( 'instawp_last_heartbeat_sent' );
 	Option::delete_option( 'instawp_migration_details' );

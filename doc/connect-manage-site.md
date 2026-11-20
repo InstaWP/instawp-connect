@@ -137,7 +137,9 @@ Sites are authenticated using:
   `instawp_sync_parent_connect_data` option (WP-CLI or the Database Manager).
 - **Deactivating** the plugin cancels every Action Scheduler action in the `instawp-connect` group and the
   CDN purge WP-Cron events, and removes any Database Manager copy. Settings and data stay; activating
-  again re-creates the jobs. A plugin update deactivates silently, which skips this.
+  again re-creates the jobs. A plugin update deactivates silently, which skips this. Activity-log events
+  logged during the deactivation request itself (`plugin_deactivated` fires after the deactivation hook)
+  are sent inside that request instead of queued, since nothing would run a queued send afterwards.
 - The admin-bar menu check (`can_show_navbar()`) returns early for logged-out visitors before reading any
   setting.
 
