@@ -125,7 +125,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$state = $this->get_send_state();
 			$now   = time();
 
-			if ( $state['retry_after'] > $now || ( ! $critical && $state['next_send'] > $now ) ) {
+			if ( $state['retry_after'] > $now || ( ! $critical && ! defined( 'INSTAWP_DEACTIVATING' ) && $state['next_send'] > $now ) ) {
 				$this->schedule_follow_up( max( $state['retry_after'], $critical ? 0 : $state['next_send'] ), $critical );
 				return;
 			}
@@ -156,7 +156,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			// Re-read under the lock: a send that just finished may have moved the throttle or backoff.
 			$state = $this->get_send_state();
 			$now   = time();
-			if ( $state['retry_after'] > $now || ( ! $critical && $state['next_send'] > $now ) ) {
+			if ( $state['retry_after'] > $now || ( ! $critical && ! defined( 'INSTAWP_DEACTIVATING' ) && $state['next_send'] > $now ) ) {
 				$this->schedule_follow_up( max( $state['retry_after'], $critical ? 0 : $state['next_send'] ), $critical );
 				return;
 			}
@@ -341,6 +341,12 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * @return void
 		 */
 		private function schedule_follow_up( $timestamp, $critical_only = false ) {
+			// The plugin is being deactivated: nothing would run the action, and it would be left behind. Rows
+			// that could not be sent now stay in the table until the plugin is active again.
+			if ( defined( 'INSTAWP_DEACTIVATING' ) ) {
+				return;
+			}
+
 			// Before Action Scheduler is ready (an event logged that early), its functions only raise a
 			// "called incorrectly" notice. The loopback still sends; a later event queues the backup.
 			if ( ! function_exists( 'as_get_scheduled_actions' ) || ! ActionScheduler::is_initialized() ) {
@@ -508,7 +514,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 */
 		private function queue_send( $critical_only ) {
 			// This request deactivates the plugin, so no loopback or queued action will run afterwards (and a
-			// queued action would be left behind). Send now, inside the request, as before.
+			// queued action would be left behind). Send now, inside the request. send_log_data() skips the
+			// 15s throttle in this request (a send moments earlier must not hold this one back) but keeps the
+			// failure backoff and the lock.
 			if ( defined( 'INSTAWP_DEACTIVATING' ) ) {
 				$this->send_log_data( $critical_only );
 
