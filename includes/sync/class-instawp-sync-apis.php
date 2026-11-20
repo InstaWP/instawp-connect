@@ -663,7 +663,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 					$progress        = intval( ( $count / $total_op ) * 100 );
 					$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
 
-				} catch ( \Throwable $e ) {
+				} catch ( \Exception $e ) {
 					$progress        = isset( $progress ) ? $progress : intval( ( $count / $total_op ) * 100 );
 					//Allowed status: 'pending', 'in_progress', 'completed', 'error'
 					$progress_status = 'error'; 
@@ -692,7 +692,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		if ( ! empty( $source_url ) && class_exists( '\Elementor\Utils' ) && method_exists( '\Elementor\Utils', 'replace_urls' ) ) {
 			try {
 				\Elementor\Utils::replace_urls( $source_url, site_url() );
-			} catch ( \Throwable $e ) {
+			} catch ( \Exception $e ) {
 			}
 		}
 

@@ -267,11 +267,11 @@ class instaWP {
 								'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
 							);
 						}
-					} catch ( \Throwable $e ) {
+					} catch ( Exception $e ) {
 						continue;
 					}
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( \Exception $e ) {
 				error_log( 'error in prepare_large_files_list: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 		}
@@ -351,7 +351,7 @@ class instaWP {
 						'type'          => 'folder',
 					);
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( Exception $e ) {
 			}
 		}
 
@@ -387,12 +387,12 @@ class instaWP {
 					try {
 						$bytes_total += $object->getSize();
 						++ $files_total;
-					} catch ( \Throwable $e ) {
+					} catch ( Exception $e ) {
 						continue;
 					}
 				}
 			}
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 		}
 
 		return array(

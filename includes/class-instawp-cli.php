@@ -228,7 +228,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 							)
 						);
 						$wp_config->set();
-					} catch ( \Throwable $e ) {
+					} catch ( \Exception $e ) {
 						WP_CLI::error( $e->getMessage() );
 						return false;
 					}
@@ -238,7 +238,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					try {
 						$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
 						$wp_config->delete();
-					} catch ( \Throwable $e ) {
+					} catch ( \Exception $e ) {
 						WP_CLI::error( $e->getMessage() );
 						return false;
 					}
@@ -428,7 +428,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					WP_CLI::success( 'Mode configuration updated successfully' );
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( \Exception $e ) {
 				WP_CLI::error( 'Failed to configure mode: ' . $e->getMessage() );
 				return false;
 			}

@@ -171,7 +171,7 @@ class IWPDB {
 
 		try {
 			$query_result = $this->conn->query( $str_query );
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 			$this->last_error = $e->getMessage();
 
 		}
@@ -422,7 +422,7 @@ class IWPDB {
 				} else {
 					$this->last_error = "IWPDB: Unexpected result type when counting rows in table $table_name";
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( Exception $e ) {
 				$this->last_error = "IWPDB: Exception when processing table $table_name: " . $e->getMessage();
 			}
 		}

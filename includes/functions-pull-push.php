@@ -503,7 +503,7 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 				} else {
 					$archive->addFile( $filePath, $relativePath );
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( Exception $e ) {
 				$added_to_zip = false;
 				header( 'x-iwp-error: ' . 'Exception when adding file to archive: ' . $e->getMessage() );
 			}
@@ -531,7 +531,7 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 			header( 'x-iwp-checksum: ' . $checksum );
 
 			readfile_chunked( $tmpZip );
-		} catch ( \Throwable $exception ) {
+		} catch ( Exception $exception ) {
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: The migration script could not read this specific file. Actual exception message is: ' . $exception->getMessage() );
 		}
@@ -859,7 +859,7 @@ if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
 						$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
 					}
 				}
-			} catch ( \Throwable $e ) {
+			} catch ( Exception $e ) {
 				$result['status']     = false;
 				$result['messages'][] = "Error backing up {$folder}: " . $e->getMessage();
 			}
@@ -1194,7 +1194,7 @@ if ( ! function_exists( 'iwp_send_plugin_theme_inventory' ) ) {
 									'file_count' => $wp_item['file_count'],
 									'checksum'   => $wp_item['checksum'],
 								);
-							} catch ( \Throwable $e ) {
+							} catch ( Exception $e ) {
 								header( 'x-iwp-status: false' );
 								header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
 								die();

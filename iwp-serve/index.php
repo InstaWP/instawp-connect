@@ -66,7 +66,7 @@ global $tracking_db;
 
 try {
 	$tracking_db = new IWPDB( $migrate_key );
-} catch ( \Throwable $e ) {
+} catch ( Exception $e ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Migration script could not connect to the database. Actual error is: ' . $e->getMessage() );
 	die();
@@ -151,7 +151,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				header( "x-iwp-message: LimitIterator is empty unexpectedly. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE . ", Total files: $totalFiles" );
 				die();
 			}
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: Migration script could not traverse files using the limited iterator. Error: ' . $e->getMessage() );
 			die();
@@ -187,7 +187,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			try {
 				$filepath = $file->getPathname();
 				$filesize = $file->getSize();
-			} catch ( \Throwable $e ) {
+			} catch ( Exception $e ) {
 				$tracking_db->insert( 'iwp_files_sent', array(
 					'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
 					'filepath_hash' => "",
@@ -207,7 +207,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						'sent'          => 5,
 						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
-				} catch ( \Throwable $e ) {
+				} catch ( Exception $e ) {
 				}
 				continue;
 			}
@@ -224,7 +224,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
 					++ $fileIndex;
-				} catch ( \Throwable $e ) {
+				} catch ( Exception $e ) {
 					header( 'x-iwp-status: false' );
 					header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
 					die();
@@ -325,7 +325,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				try {
 					$filepath = $file->getPathname();
 					$filesize = $file->getSize();
-				} catch ( \Throwable $e ) {
+				} catch ( Exception $e ) {
 					continue;
 				}
 
@@ -339,7 +339,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'sent'          => 5,
 							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 						) );
-					} catch ( \Throwable $e ) {
+					} catch ( Exception $e ) {
 					}
 					continue;
 				}
@@ -356,7 +356,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'size'          => "'$filesize'",
 						) );
 						++ $fileIndex;
-					} catch ( \Throwable $e ) {
+					} catch ( Exception $e ) {
 						header( 'x-iwp-status: false' );
 						header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
 						die();
