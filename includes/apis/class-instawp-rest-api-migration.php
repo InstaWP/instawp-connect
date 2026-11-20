@@ -329,7 +329,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 					$response['success']       = false;
 					$response['cleanup_error'] = esc_html__( 'Error getting SSO login url.', 'instawp-connect' );
 
-					error_log( 'sso_url_response: ' . wp_json_encode( $login_url_response ) );
+					Helper::add_error_log( array(
+						'message' => 'SSO login URL request failed',
+						'status'  => $login_url_response instanceof WP_REST_Response ? $login_url_response->get_status() : gettype( $login_url_response ),
+					) );
 				}
 			} else {
 				error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
@@ -447,7 +450,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				'file'        => $th->getFile(),
 				'response'    => $response,
 			);
-			error_log( 'migration clean up exception: ' . json_encode( $response ) );
+			Helper::add_error_log( array(
+				'message' => 'Migration clean-up failed',
+				'error'   => $th->getMessage(),
+			) );
 			return $this->send_response( $response );
 		}
 	}

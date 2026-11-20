@@ -23,6 +23,21 @@ that do not exist, so a missing option costs no extra query.
 2. Site receives unique `connect_id` and `connect_uuid`
 3. Heartbeat system monitors connection health
 
+### Connecting through the dashboard (authorize redirect)
+
+"Connect" sends the user to `/authorize?source=connect_manage&return_url=…` on the InstaWP dashboard. The
+return URL comes from `instawp_connect_return_url()` and carries `iwp_code=1`. A dashboard that knows the
+marker sends the browser back with a **one-time code** (`?code=…&success=true`, 3 minutes, single use),
+not the API key. `InstaWP_Hooks::generate_api_key()` then calls `instawp_redeem_connect_code()`, which trades
+the code server-to-server at `POST <api domain>/api/v2/connect/token` for the API key and JWT, and connects
+with them. This call goes straight through `wp_remote_post()`, because `Curl::do_curl()` needs an API key and
+this is the call that gets one. The API domain must be an allowed InstaWP domain (or `INSTAWP_API_DOMAIN`).
+
+A dashboard without the marker support still sends `access_token=…&jwt=…`, and that path is unchanged. In
+both cases the handler redirects to `tools.php?page=instawp`, so neither the code nor the key stays in the
+address bar. If the code exchange fails, the redirect adds `instawp-connect-failed=1` and the page shows an
+error notice asking the user to connect again.
+
 ## Key Functions
 
 | Function | Description |
