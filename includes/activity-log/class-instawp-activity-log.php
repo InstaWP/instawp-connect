@@ -48,6 +48,15 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		/** Value of the send lock while this request holds it, '' otherwise. */
 		private $send_lock = '';
 
+		/** Whether the last send_log_data() call found the lock held by another send. */
+		private $lock_busy = false;
+
+		/** Whether this deactivation request has registered its end-of-request send. */
+		private static $deactivation_send_registered = false;
+
+		/** Tries for the deactivation send when another send holds the lock, one second apart. */
+		const DEACTIVATION_LOCK_ATTEMPTS = 3;
+
 		private $table_name;
 
 		public function __construct() {
@@ -102,7 +111,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * Send queued activity logs to the API in bounded batches.
 		 *
 		 * Runs in its own request (the loopback queue_send() starts, or an Action Scheduler action), never
-		 * inside the request that logged the event. It must never re-send the whole table: an earlier
+		 * inside the request that logged the event, except once at the end of a request that deactivates the
+		 * plugin (send_on_deactivation()). It must never re-send the whole table: an earlier
 		 * version POSTed every queued row with 10 inline retries on each event, and when the API timed out
 		 * after storing the batch, the same rows were stored again on every retry (ClickUp 14ypaj0dejd,
 		 * ~22M duplicate logs/day from one site).
@@ -133,6 +143,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			// Another send is running. It may have read the table before this run's rows were added, so
 			// come back once it is likely done rather than send the same rows twice.
 			if ( ! $this->acquire_send_lock() ) {
+				$this->lock_busy = true;
 				$this->schedule_follow_up( $now + self::SEND_THROTTLE, $critical );
 				return;
 			}
@@ -490,8 +501,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             $activity_log_interval = Option::get_option( 'instawp_activity_log_interval', 'instantly' );
             $activity_log_interval = empty( $activity_log_interval ) ? 'instantly' : $activity_log_interval;
 
-			// "Instantly" sends everything; "every X minutes" leaves non-critical rows to the recurring send.
-			if ( 'instantly' === $activity_log_interval ) {
+			// "Instantly" sends everything; "every X minutes" leaves non-critical rows to the recurring send. While
+			// the plugin is being deactivated the recurring send is gone, so every event goes to the final send.
+			if ( defined( 'INSTAWP_DEACTIVATING' ) || 'instantly' === $activity_log_interval ) {
 				$this->queue_send( false );
 			} elseif ( 'critical' === $args['severity'] ) {
 				$this->queue_send( true );
@@ -514,11 +526,13 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 */
 		private function queue_send( $critical_only ) {
 			// This request deactivates the plugin, so no loopback or queued action will run afterwards (and a
-			// queued action would be left behind). Send now, inside the request. send_log_data() skips the
-			// 15s throttle in this request (a send moments earlier must not hold this one back) but keeps the
-			// failure backoff and the lock.
+			// queued action would be left behind). Send once, at the end of this request, so a bulk deactivation
+			// makes one API call for every event it logged instead of one per event.
 			if ( defined( 'INSTAWP_DEACTIVATING' ) ) {
-				$this->send_log_data( $critical_only );
+				if ( ! self::$deactivation_send_registered ) {
+					self::$deactivation_send_registered = true;
+					add_action( 'shutdown', array( $this, 'send_on_deactivation' ) );
+				}
 
 				return;
 			}
@@ -559,6 +573,41 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					),
 				)
 			);
+		}
+
+		/**
+		 * The one send of a deactivation request, on shutdown (registered by queue_send()).
+		 *
+		 * A full send of everything logged, in every interval mode. send_log_data() skips the 15s throttle
+		 * in this request (a send moments earlier must not hold this one back) but keeps the failure
+		 * backoff and the lock. If another send holds the lock (a loopback started earlier in a bulk
+		 * deactivation), it is retried briefly. Nothing here may break the request, so every error is
+		 * caught. Rows that could not be sent stay in the table and go out once the plugin is active again.
+		 *
+		 * @return void
+		 */
+		public function send_on_deactivation() {
+			try {
+				for ( $attempt = 0; $attempt < self::DEACTIVATION_LOCK_ATTEMPTS; $attempt++ ) {
+					$this->lock_busy = false;
+					$this->send_log_data( false );
+
+					if ( ! $this->lock_busy ) {
+						break;
+					}
+
+					sleep( 1 );
+				}
+			} catch ( \Throwable $e ) {
+				try {
+					Helper::add_error_log( array(
+						'message' => 'Activity log send on deactivation failed',
+						'error'   => $e->getMessage(),
+					) );
+				} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// Logging must not break the request either.
+				}
+			}
 		}
 
 		/**
