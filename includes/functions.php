@@ -698,7 +698,7 @@ if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
 	 * @return string|false Absolute path, or false when the folder cannot be created.
 	 */
 	function instawp_private_debug_log_file() {
-		$dir  = wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs';
+		$dir  = wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' );
 		$file = Option::get_option( 'instawp_debug_log_file' );
 
 		// Only a name this function made, directly in this site's folder: a stored value from another host
@@ -753,7 +753,7 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 	 * @return void
 	 */
 	function instawp_move_default_debug_log( $target ) {
-		$default = wp_normalize_path( WP_CONTENT_DIR ) . '/debug.log';
+		$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
 
 		if ( ! is_file( $default ) || is_link( $default ) ) {
 			return;
@@ -804,7 +804,7 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
 			$file = WP_DEBUG_LOG;
 		} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
-			&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs' ) {
+			&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' ) ) {
 			// Debug logging is off again: the history is still in this site's private file. A stored name from
 			// another site (a cloned database) is not read.
 			$file = $stored;

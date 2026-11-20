@@ -142,7 +142,7 @@ class instaWP {
 		try {
 			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && '' !== WP_DEBUG_LOG
 				&& ! in_array( strtolower( WP_DEBUG_LOG ), array( 'true', 'false', '1', '0' ), true )
-				&& wp_normalize_path( WP_DEBUG_LOG ) !== wp_normalize_path( WP_CONTENT_DIR ) . '/debug.log'
+				&& wp_normalize_path( WP_DEBUG_LOG ) !== wp_normalize_path( WP_CONTENT_DIR . '/debug.log' )
 				&& ! instawp_is_private_debug_log_path( WP_DEBUG_LOG ) ) {
 				return WP_DEBUG_LOG;
 			}
