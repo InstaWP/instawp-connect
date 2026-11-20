@@ -53,6 +53,14 @@ defined( 'INSTAWP_API_URL' ) || define( 'INSTAWP_API_URL', '/api/v1' );
  */
 global $instawp_plugin;
 
+// These are read on every request, visitors included, and are stored non-autoloaded. Load them in one
+// query instead of one each. Options that do not exist (instawp_is_staging and instawp_parent_is_on_local
+// on most sites) are remembered as missing by the same query, so they cost no extra query either.
+// WordPress 6.4+; older versions read them one by one as before.
+if ( function_exists( 'wp_prime_option_caches' ) ) {
+	wp_prime_option_caches( array( 'instawp_api_options', 'instawp_activity_log', 'instawp_is_staging', 'instawp_parent_is_on_local' ) );
+}
+
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
