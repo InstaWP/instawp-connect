@@ -902,7 +902,7 @@ class Helper {
 			$length        = (int) round( ceil( absint( $length ) / 2 ) );
 			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
 			$random_string = bin2hex( $bytes );
-		} catch ( \Throwable $e ) {
+		} catch ( \Exception $e ) {
 			$random_string = substr( hash( 'sha256', wp_generate_uuid4() ), 0, absint( $length ) );
 		}
 
@@ -949,12 +949,12 @@ class Helper {
 					try {
 						$bytes_total += $object->getSize();
 						++$files_total;
-					} catch ( \Throwable $e ) {
+					} catch ( \Exception $e ) {
 						continue;
 					}
 				}
 			}
-		} catch ( \Throwable $e ) {
+		} catch ( \Exception $e ) {
 		}
 
 		return array(

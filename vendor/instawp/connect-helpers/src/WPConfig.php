@@ -584,7 +584,7 @@ class WPConfig extends \WPConfigTransformer {
 
             try {
                 $this->update( 'constant', $key, $value, $args );
-            } catch ( \Throwable $e ) {
+            } catch ( \Exception $e ) {
                 throw new \Exception( $e->getMessage() );
             }
         }
@@ -625,7 +625,7 @@ class WPConfig extends \WPConfigTransformer {
 
             try {
                 $this->remove( 'constant', $constant );
-            } catch ( \Throwable $e ) {
+            } catch ( \Exception $e ) {
                 throw new \Exception( $e->getMessage() );
             }
         }

@@ -78,7 +78,7 @@ class DatabaseManager {
 					'template' => base64_encode( $file_name ),
 				], admin_url( 'admin-post.php' ) ),
 			];
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

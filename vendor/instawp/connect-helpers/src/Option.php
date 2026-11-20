@@ -13,7 +13,7 @@ class Option {
 					'success' => self::update_option( $name, $value ),
 				];
 			}
-		} catch ( \Throwable $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -33,7 +33,7 @@ class Option {
 					'success' => self::delete_option( $name ),
 				];
 			}
-		} catch ( \Throwable $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

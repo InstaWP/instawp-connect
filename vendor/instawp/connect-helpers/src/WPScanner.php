@@ -65,7 +65,7 @@ class WPScanner {
 
 		try {
 			$prepare_report_res = codeprofiler_prepare_report();
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 			return new \WP_Error( 'cp_prepare_report_failed', 'Could not prepare report.' );
 		}
 
@@ -92,7 +92,7 @@ class WPScanner {
 
 		try {
 			$start_profiler_response = codeprofiler_start_profiler();
-		} catch ( \Throwable $e ) {
+		} catch ( Exception $e ) {
 			return new \WP_Error( 'cp_start_failed', 'Could not start code profiler' );
 		}
 
