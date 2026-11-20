@@ -141,8 +141,8 @@ Sites are authenticated using:
   logged during the deactivation request itself (`plugin_deactivated` fires after the deactivation hook,
   and in a bulk deactivation every plugin after this one logs too) are sent once, at the end of that
   request (`shutdown`), in every interval mode: nothing would run a queued send afterwards. That send skips
-  the 15s throttle but keeps the failure backoff and the lock (retried up to 3 times, a second apart, if
-  another send holds it), and it catches every error so it cannot break the request. Rows it cannot send
+  the 15s throttle but keeps the failure backoff and the lock (tried up to 3 times, a second apart, if
+  another send holds it), and it catches every exception and error so it cannot break the request. Rows it cannot send
   stay in the table until the plugin is active again; no follow-up job is scheduled.
 - The admin-bar menu check (`can_show_navbar()`) returns early for logged-out visitors before reading any
   setting.

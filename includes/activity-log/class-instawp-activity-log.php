@@ -581,8 +581,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * A full send of everything logged, in every interval mode. send_log_data() skips the 15s throttle
 		 * in this request (a send moments earlier must not hold this one back) but keeps the failure
 		 * backoff and the lock. If another send holds the lock (a loopback started earlier in a bulk
-		 * deactivation), it is retried briefly. Nothing here may break the request, so every error is
-		 * caught. Rows that could not be sent stay in the table and go out once the plugin is active again.
+		 * deactivation), it is tried up to DEACTIVATION_LOCK_ATTEMPTS times, a second apart. Every
+		 * exception and error is caught so the send cannot break the request. Rows that could not be sent stay in the table and go out once the plugin is active again.
 		 *
 		 * @return void
 		 */
@@ -592,7 +592,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					$this->lock_busy = false;
 					$this->send_log_data( false );
 
-					if ( ! $this->lock_busy ) {
+					if ( ! $this->lock_busy || $attempt + 1 >= self::DEACTIVATION_LOCK_ATTEMPTS ) {
 						break;
 					}
 
