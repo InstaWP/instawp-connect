@@ -736,7 +736,7 @@ include $file_path;';
 
 		try {
 			$tracking_db = new IWPDB( $migrate_key );
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			error_log( "Database creation error: {$e->getMessage()}" );
 
 			return false;
@@ -2603,7 +2603,7 @@ include $file_path;';
 				instawp_zip_folder_with_phar( ABSPATH, $archive_path, $directories_to_skip );
 
 				return $archive_path;
-			} catch ( Exception $e ) {
+			} catch ( \Throwable $e ) {
 				return new WP_Error( 'backup_failed', $e->getMessage() );
 			}
 		}
@@ -2683,7 +2683,7 @@ include $file_path;';
 
 			try {
 				$limitedIterator = new LimitIterator( $iterator );
-			} catch ( Exception $e ) {
+			} catch ( \Throwable $e ) {
 
 				// The archive handle is already open at this point, so bail out cleanly
 				// rather than leaving a partial zip behind in the temp directory.
@@ -2862,7 +2862,7 @@ include $file_path;';
 			if ( ! $sftp->login( $sftp_username, $sftp_password ) ) {
 				return new WP_Error( 'sftp_login_failed', esc_html__( 'SFTP login failed.', 'instawp-connect' ) );
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			return new WP_Error( 'sftp_login_failed', $e->getMessage() );
 		}
 

@@ -400,7 +400,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 				'WP_AUTO_UPDATE_CORE',
 			), false, true );
 			$response  = $wp_config->get();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$response = array(
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -448,7 +448,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 				$response['wp-config'] = $wp_config->set();
 
 				wp_cache_flush();
-			} catch ( \Exception $e ) {
+			} catch ( \Throwable $e ) {
 				$response['wp-config'] = array(
 					'success' => false,
 					'message' => $e->getMessage(),
@@ -539,7 +539,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 			$wp_config = new Helpers\WPConfig( $params );
 			$response  = $wp_config->get();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$response = array(
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -571,7 +571,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			$response  = $wp_config->set();
 
 			wp_cache_flush();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$response = array(
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -603,7 +603,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			$response  = $wp_config->delete();
 
 			wp_cache_flush();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$response = array(
 				'success' => false,
 				'message' => $e->getMessage(),

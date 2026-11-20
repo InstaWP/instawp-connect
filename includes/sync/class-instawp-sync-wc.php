@@ -361,7 +361,7 @@ class InstaWP_Sync_WC {
 			}
 
 			return $response;
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			// Restore WooCommerce emails
 			remove_filter( 'woocommerce_mail_callback', array( $this, 'disable_woocommerce_emails' ), PHP_INT_MAX );
 			foreach ( $wc_mail_ids as $wc_mail_id ) {
@@ -397,7 +397,7 @@ class InstaWP_Sync_WC {
 				$order_id = $order->get_id();
 				try {
 					$order->set_order_key( $reference_id );
-				} catch ( Exception $e ) {
+				} catch ( \Throwable $e ) {
 					return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
 						'status'  => 'pending',
 						'message' => $e->getMessage(),
@@ -534,7 +534,7 @@ class InstaWP_Sync_WC {
 			try {
 				$order->set_payment_method( $details['payment_method'] );
 				$order->set_payment_method_title( $details['payment_method_title'] );
-			} catch ( Exception $e ) {
+			} catch ( \Throwable $e ) {
 				return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
 					'status'  => 'pending',
 					'message' => $e->getMessage(),

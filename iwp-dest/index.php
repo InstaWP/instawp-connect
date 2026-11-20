@@ -347,7 +347,7 @@ if ( $file_type === 'db' ) {
 					if ( ! $insert_response ) {
 						$is_insert_failed = true;
 					}
-				} catch ( Exception $e ) {
+				} catch ( \Throwable $e ) {
 					file_put_contents( $log_file_path, 'insert exception: ' . $e->getMessage() . "\n", FILE_APPEND );
 
 					$is_insert_failed = true;
@@ -357,7 +357,7 @@ if ( $file_type === 'db' ) {
 					try {
 						$query           = "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'";
 						$update_response = $mysqli->query( $query );
-					} catch ( Exception $e ) {
+					} catch ( \Throwable $e ) {
 						file_put_contents( $log_file_path, "Update failed. Error message: {$e->getMessage()}\n", FILE_APPEND );
 
 						header( 'x-iwp-status: false' );
@@ -506,7 +506,7 @@ if ( $file_type === 'zip' ) {
 				header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
 				die();
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			echo 'Error: ' . $e->getMessage();
 
 			header( 'x-iwp-status: false' );
@@ -543,7 +543,7 @@ if ( $file_type === 'zip' ) {
 			if ( file_exists( $file_save_path ) ) {
 				unlink( $file_save_path );
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			echo 'Error: ' . $e->getMessage();
 
 			header( 'x-iwp-status: false' );

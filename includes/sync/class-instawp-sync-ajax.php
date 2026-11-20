@@ -222,7 +222,7 @@ class InstaWP_Sync_Ajax {
 			} else {
 				$this->send_error( 'The events are not available' );
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$this->send_error( 'Caught Exception: ' . $e->getMessage() );
 		}
 	}
@@ -793,7 +793,7 @@ class InstaWP_Sync_Ajax {
 					$output['message'] = 'No pending events found!';
 				}
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$output['message'] = 'Caught Exception: ' . $e->getMessage();
 		}
 
