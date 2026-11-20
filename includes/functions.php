@@ -564,19 +564,25 @@ if ( ! function_exists( 'instawp_log_throwable' ) ) {
 			if ( isset( $seen[ $key ] ) && (int) $seen[ $key ] > $now ) {
 				return;
 			}
+			Helper::add_error_log( array(
+				'message' => $where . ' failed',
+				'error'   => $e->getMessage(),
+				'where'   => basename( $e->getFile() ) . ':' . $e->getLine(),
+			) );
+
+			// Recorded after the entry is written, so a failure here can never hide the error itself.
 			foreach ( $seen as $seen_key => $expiry ) {
 				if ( (int) $expiry <= $now ) {
 					unset( $seen[ $seen_key ] );
 				}
 			}
 			$seen[ $key ] = $now + HOUR_IN_SECONDS;
+			if ( count( $seen ) > 100 ) {
+				// Messages that differ on every request would otherwise keep adding keys for an hour.
+				asort( $seen );
+				$seen = array_slice( $seen, -100, null, true );
+			}
 			Option::update_option( 'instawp_throwable_log_seen', $seen );
-
-			Helper::add_error_log( array(
-				'message' => $where . ' failed',
-				'error'   => $e->getMessage(),
-				'where'   => basename( $e->getFile() ) . ':' . $e->getLine(),
-			) );
 		} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			// Logging must not break the request either.
 		}

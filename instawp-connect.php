@@ -105,10 +105,15 @@ function instawp_plugin_deactivate() {
 	// hook returns, so an uncaught error here would leave it active.
 	try {
 		InstaWP_Tools::instawp_reset_permalink();
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation reset', $e );
+	}
+
+	try {
 		Option::delete_option( 'instawp_last_heartbeat_sent' );
 		Option::delete_option( 'instawp_migration_details' );
 	} catch ( \Throwable $e ) {
-		instawp_log_throwable( 'Deactivation reset', $e );
+		instawp_log_throwable( 'Deactivation option cleanup', $e );
 	}
 
 	// Stop the plugin's background jobs: once it is inactive nothing handles them, and Action Scheduler

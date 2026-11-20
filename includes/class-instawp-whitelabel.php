@@ -83,7 +83,8 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				return;
 			}
 
-			// A failed attempt (API failure or an error above) is retried after an hour, not on the next admin request.
+			// After a failed attempt (an API failure, or an error caught by disconnect_whitelabel_site() such as a
+			// malformed plan date) try again in an hour, not on the next admin request.
 			if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
 				return;
 			}
