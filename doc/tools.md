@@ -62,14 +62,17 @@ on servers that ignore `.htaccess` the unguessable name is the protection.
   file already exists, or the rename fails), its last 5 MB is appended to the private file and `debug.log` is
   then removed, or emptied if it cannot be removed, so the next switch does not copy the same entries again
   (`instawp_move_default_debug_log()`).
-- The move happens only after `wp-config.php` was updated. If `WP_DEBUG_LOG` could not be written (for example
-  it is defined inside an `if` block), PHP keeps writing `debug.log`, so the log stays where it is.
+- The move happens only after `wp-config.php` was updated, checked by reading `WP_DEBUG_LOG` back from the file.
+  If it was not written (for example it is defined inside an `if` block or in an included file), PHP keeps
+  writing `debug.log`, so the log stays where it is. In the copy case, entries older than the last 5 MB of
+  `debug.log` are not kept.
 - A custom `WP_DEBUG_LOG` path the site owner set themselves is kept. The default `wp-content/debug.log`
   written as a string, and a private file from another host (a migrated `wp-config.php`), are not custom
   paths. The stored name is used only if it is a `debug-<32 letters/digits>.log` file directly in this
   site's `wp-content/instawp-logs/`.
 - The Developer tab's **Debug Log** button shows the last 2 MB of the current log as text in a new tab
-  (`instawp_current_debug_log_tail()`), since the log has no public URL.
+  (`instawp_current_debug_log_tail()`), since the log has no public URL. With debug logging off again it
+  shows the private file's history; with no log at all it says so.
 - `InstaWP_Tools::cli_archive_wordpress_files()` leaves `wp-content/instawp-logs/` out of the archive, as it
   already did for `debug.log`.
 - If the private folder cannot be created, the old behaviour (`true`) is used rather than no log at all.

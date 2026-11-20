@@ -2253,6 +2253,9 @@
             },
             success: function (response) {
                 if (response.success === false) {
+                    if ('debug_log' === el.data('type') && response.data && response.data.message) {
+                        alert(response.data.message);
+                    }
                     return false;
                 }
                 if ('error_log' === el.data('type') && response.data.error_log) {
@@ -2268,7 +2271,11 @@
                     }, 5000);
                 } else if ('debug_log' === el.data('type') && 'string' === typeof response.data.debug_log) {
                     // Shown as plain text in a new tab; the log has no public URL.
-                    window.open(URL.createObjectURL(new Blob([response.data.debug_log], {type: 'text/plain;charset=utf-8'})), '_blank');
+                    let logUrl = URL.createObjectURL(new Blob([response.data.debug_log], {type: 'text/plain;charset=utf-8'}));
+                    window.open(logUrl, '_blank');
+                    setTimeout(function () {
+                        URL.revokeObjectURL(logUrl);
+                    }, 60000);
                 } else if (response.data.login_url) {
                     window.open(response.data.login_url, '_blank');
                 }

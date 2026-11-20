@@ -99,19 +99,26 @@ class instaWP {
 
 		try {
 			$wp_config = new WPConfig( $params );
-			$result    = $wp_config->set();
+			$wp_config->set();
 		} catch ( \Exception $e ) {
 			Helper::add_error_log( array( 'title' => 'instawp: toggle_wp_debug failed' ), $e );
 
 			return;
 		}
 
-		// Move the old log only once wp-config.php points at the private file: if WP_DEBUG_LOG could not
-		// be written, PHP keeps writing debug.log and the history must stay where the viewer reads it.
+		// Move the old log only once wp-config.php points at the private file, read back from the file: if
+		// WP_DEBUG_LOG was not written (a scoped define, a define in an included file, an edit that did not
+		// match), PHP keeps writing debug.log and the history must stay where the viewer reads it.
 		try {
-			if ( is_string( $log_target ) && instawp_is_private_debug_log_path( $log_target )
-				&& ! ( is_array( $result ) && ! empty( $result['skipped'] ) && in_array( 'WP_DEBUG_LOG', (array) $result['skipped'], true ) ) ) {
-				instawp_move_default_debug_log( $log_target );
+			if ( is_string( $log_target ) && instawp_is_private_debug_log_path( $log_target ) ) {
+				$read = ( new WPConfig( array( 'WP_DEBUG_LOG' ), false, true ) )->get();
+				$now  = isset( $read['wp-config']['WP_DEBUG_LOG'] ) ? $read['wp-config']['WP_DEBUG_LOG'] : null;
+
+				if ( is_string( $now ) && wp_normalize_path( $now ) === wp_normalize_path( $log_target ) ) {
+					instawp_move_default_debug_log( $log_target );
+					// This request loaded the old setting; send its own later errors to the new file too.
+					@ini_set( 'error_log', $log_target ); // phpcs:ignore WordPress.PHP.IniSet.Risky
+				}
 			}
 		} catch ( \Throwable $e ) {
 			instawp_log_throwable( 'Debug log move', $e );

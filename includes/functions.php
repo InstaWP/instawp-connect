@@ -799,9 +799,13 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 	 * @return string|false False when there is no log file.
 	 */
 	function instawp_current_debug_log_tail( $max_bytes = 2097152 ) {
-		$file = WP_CONTENT_DIR . '/debug.log';
+		$file   = WP_CONTENT_DIR . '/debug.log';
+		$stored = Option::get_option( 'instawp_debug_log_file' );
 		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
 			$file = WP_DEBUG_LOG;
+		} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored ) ) {
+			// Debug logging is off again: the history is still in the private file.
+			$file = $stored;
 		}
 
 		$fh = is_file( $file ) ? @fopen( $file, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
@@ -816,7 +820,8 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 		$text = stream_get_contents( $fh, $max_bytes );
 		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
-		return false === $text ? false : $text;
+		// Nothing, or one unterminated line longer than the limit, reads as no log rather than a blank page.
+		return ( false === $text || '' === $text ) ? false : $text;
 	}
 }
 
