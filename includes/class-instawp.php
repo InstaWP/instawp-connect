@@ -107,8 +107,9 @@ class instaWP {
 		}
 
 		// Move the old log only once wp-config.php points at the private file, read back from the file: if
-		// WP_DEBUG_LOG was not written (a scoped define, a define in an included file, an edit that did not
-		// match), PHP keeps writing debug.log and the history must stay where the viewer reads it.
+		// WP_DEBUG_LOG was not written (a scoped define, an edit that did not match), PHP keeps writing
+		// debug.log and the history must stay where the viewer reads it. A define in a file wp-config.php
+		// includes is not seen by this check.
 		try {
 			if ( is_string( $log_target ) && instawp_is_private_debug_log_path( $log_target ) ) {
 				$read = ( new WPConfig( array( 'WP_DEBUG_LOG' ), false, true ) )->get();

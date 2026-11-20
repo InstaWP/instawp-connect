@@ -803,8 +803,10 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 		$stored = Option::get_option( 'instawp_debug_log_file' );
 		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
 			$file = WP_DEBUG_LOG;
-		} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored ) ) {
-			// Debug logging is off again: the history is still in the private file.
+		} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
+			&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs' ) {
+			// Debug logging is off again: the history is still in this site's private file. A stored name from
+			// another site (a cloned database) is not read.
 			$file = $stored;
 		}
 
