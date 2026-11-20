@@ -2635,6 +2635,7 @@ include $file_path;';
 				array_merge(
 					array(
 						'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups',
+						'wp-content' . DIRECTORY_SEPARATOR . 'instawp-logs',
 						'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
 						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
 						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-helper',

@@ -1,6 +1,6 @@
 v1.1.6
 ======
-- Improved: The debug log viewer reads at most the last 2 MB of the log, so a very large log no longer stops it from loading. If those 2 MB hold no complete entry, it says so instead of showing an empty list.
+- Improved: The debug log viewer reads at most the last 2 MB of the log, so a very large log no longer stops it from loading. If those 2 MB hold no complete line, it says so instead of showing an empty list.
 
 v1.1.5
 ======

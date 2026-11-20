@@ -195,12 +195,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
 				$credentials = instawp_redeem_connect_code( $code );
 
+				$redirect = admin_url( 'tools.php?page=instawp' );
 				if ( ! empty( $credentials ) ) {
 					instawp_create_api_connect( $credentials['api_key'], $credentials['jwt'] );
+				} else {
+					$redirect = add_query_arg( 'instawp-connect-failed', '1', $redirect );
 				}
 
 				// Leave the code out of the address bar either way.
-				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+				wp_safe_redirect( $redirect );
 				exit();
 			}
 		}
@@ -691,6 +694,14 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function admin_notice() {
+			if ( isset( $_GET['instawp-connect-failed'] ) && current_user_can( instawp_get_admin_capability() ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				?>
+				<div class="notice notice-error is-dismissible">
+					<p><?php esc_html_e( 'The site could not be connected to InstaWP. Please try connecting again.', 'instawp-connect' ); ?></p>
+				</div>
+				<?php
+			}
+
 			if ( ! isset( $_GET['instawp-cache-cleared'] ) ) {
 				return;
 			}

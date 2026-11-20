@@ -701,7 +701,9 @@ if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
 		$dir  = wp_normalize_path( WP_CONTENT_DIR ) . '/instawp-logs';
 		$file = Option::get_option( 'instawp_debug_log_file' );
 
-		if ( ! is_string( $file ) || 0 !== strpos( wp_normalize_path( $file ), $dir . '/' ) ) {
+		// Only a name this function made, directly in this site's folder: a stored value from another host
+		// (a migrated database) or anything else is replaced.
+		if ( ! is_string( $file ) || wp_normalize_path( dirname( $file ) ) !== $dir || ! instawp_is_private_debug_log_path( $file ) ) {
 			$file = $dir . '/debug-' . wp_generate_password( 32, false ) . '.log';
 			Option::update_option( 'instawp_debug_log_file', $file );
 		}
@@ -721,13 +723,30 @@ if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_is_private_debug_log_path' ) ) {
+	/**
+	 * Whether a path has the shape of a private debug log file (instawp-logs/debug-<32 letters/digits>.log).
+	 *
+	 * @param string $path File path.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_private_debug_log_path( $path ) {
+		$path = wp_normalize_path( (string) $path );
+
+		return 'instawp-logs' === basename( dirname( $path ) ) && 1 === preg_match( '/^debug-[A-Za-z0-9]{32}\.log$/', basename( $path ) );
+	}
+}
+
 if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 	/**
 	 * Bring the existing wp-content/debug.log into the private file, so the InstaWP log viewer keeps the
 	 * history and the public copy is gone.
 	 *
 	 * A rename is instant at any size. If it is not possible (permissions, or the private file already
-	 * exists), only the last 5 MB is copied over and the old file is left alone.
+	 * exists because entries were written to debug.log again after an earlier move), the last 5 MB is
+	 * appended to the private file and debug.log is then removed (emptied if it cannot be removed), so the
+	 * same entries are not copied again on the next switch.
 	 *
 	 * @param string $target The private log file.
 	 *
@@ -746,14 +765,14 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 
 		$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$out = $in ? @fopen( $target, 'ab' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$copied = false;
 		if ( $in && $out ) {
 			$max  = 5 * 1024 * 1024;
 			$stat = fstat( $in );
-			if ( is_array( $stat ) && $stat['size'] > $max ) {
-				fseek( $in, -( $max + 1 ), SEEK_END );
+			if ( is_array( $stat ) && $stat['size'] > $max && 0 === fseek( $in, -( $max + 1 ), SEEK_END ) ) {
 				fgets( $in );
 			}
-			stream_copy_to_stream( $in, $out );
+			$copied = false !== stream_copy_to_stream( $in, $out );
 		}
 		if ( $in ) {
 			fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -761,6 +780,43 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 		if ( $out ) {
 			fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		}
+
+		if ( $copied && ! @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( $empty ) {
+				fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
+	/**
+	 * The last part of the log file WP_DEBUG_LOG currently writes to, as plain text.
+	 *
+	 * @param int $max_bytes Most bytes returned.
+	 *
+	 * @return string|false False when there is no log file.
+	 */
+	function instawp_current_debug_log_tail( $max_bytes = 2097152 ) {
+		$file = WP_CONTENT_DIR . '/debug.log';
+		if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
+			$file = WP_DEBUG_LOG;
+		}
+
+		$fh = is_file( $file ) ? @fopen( $file, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $fh ) {
+			return false;
+		}
+
+		$stat = fstat( $fh );
+		if ( is_array( $stat ) && $stat['size'] > $max_bytes && 0 === fseek( $fh, -( $max_bytes + 1 ), SEEK_END ) ) {
+			fgets( $fh );
+		}
+		$text = stream_get_contents( $fh, $max_bytes );
+		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		return false === $text ? false : $text;
 	}
 }
 

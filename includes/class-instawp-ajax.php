@@ -99,7 +99,12 @@ class InstaWP_Ajax {
 			set_transient( 'instawp_cache_purged', $response, 300 );
 			wp_send_json_success( $response );
 		} elseif ( $type === 'debug_log' ) {
-			wp_send_json_success( array( 'login_url' => site_url( 'wp-content/debug.log' ) ) );
+			// The log is no longer at a public URL (see InstaWP::toggle_wp_debug()), so its text is returned.
+			$log = instawp_current_debug_log_tail();
+			if ( false === $log ) {
+				wp_send_json_error( array( 'message' => __( 'Debug log not found.', 'instawp-connect' ) ) );
+			}
+			wp_send_json_success( array( 'debug_log' => $log ) );
 		} elseif ( $type === 'error_log' ) {
 			wp_send_json_success( array( 'error_log' => Helper::get_error_log() ) );
 		}

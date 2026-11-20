@@ -2266,6 +2266,9 @@
                     setTimeout(function () {
                         el.text(originalText);
                     }, 5000);
+                } else if ('debug_log' === el.data('type') && 'string' === typeof response.data.debug_log) {
+                    // Shown as plain text in a new tab; the log has no public URL.
+                    window.open(URL.createObjectURL(new Blob([response.data.debug_log], {type: 'text/plain;charset=utf-8'})), '_blank');
                 } else if (response.data.login_url) {
                     window.open(response.data.login_url, '_blank');
                 }

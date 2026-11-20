@@ -35,7 +35,8 @@ this is the call that gets one. The API domain must be an allowed InstaWP domain
 
 A dashboard without the marker support still sends `access_token=…&jwt=…`, and that path is unchanged. In
 both cases the handler redirects to `tools.php?page=instawp`, so neither the code nor the key stays in the
-address bar.
+address bar. If the code exchange fails, the redirect adds `instawp-connect-failed=1` and the page shows an
+error notice asking the user to connect again.
 
 ## Key Functions
 
