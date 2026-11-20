@@ -1700,7 +1700,7 @@ include $file_path;';
 					Helper::add_error_log( array( 'message' => 'Inventory fetch failed' ) );
 				}
 			}
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 

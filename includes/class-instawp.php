@@ -100,7 +100,7 @@ class instaWP {
 		try {
 			$wp_config = new WPConfig( $params );
 			$wp_config->set();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			Helper::add_error_log( array( 'title' => 'instawp: toggle_wp_debug failed' ), $e );
 
 			return;

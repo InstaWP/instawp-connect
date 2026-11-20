@@ -124,7 +124,7 @@ class DebugLog {
 			}
 
 			$results = $logs;
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

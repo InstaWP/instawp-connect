@@ -378,7 +378,7 @@ class InstaWP_Sync_Parser {
 			$metadata = _wp_image_meta_replace_original( $saved, $file, $metadata, $id );
 			wp_update_attachment_metadata( $id, $metadata );    
 			
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			Helper::add_error_log( array(
 				'message' => 'Scaled image generation failed',
 				'error'   => $e->getMessage(),
