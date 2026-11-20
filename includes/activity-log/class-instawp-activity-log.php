@@ -177,6 +177,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$jwt        = Helper::get_jwt();
 			$last_id    = 0;
 			$has_more   = false;
+			$sent       = false;
 
 			for ( $batch = 0; $batch < self::MAX_BATCHES; $batch++ ) {
 				if ( $critical ) {
@@ -219,22 +220,28 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				);
 
+				$sent     = true;
 				$last_id  = end( $log_ids );
 				$has_more = count( $results ) === self::BATCH_SIZE;
 				if ( ! $has_more ) {
 					break;
 				}
 
-				// Lost the lock (taken over as stale): stop without touching the send state, so the new holder
-				// alone sends what is left.
+				// Lost the lock (taken over as stale): stop without touching the send state. The new holder may
+				// send critical rows only, so leave a follow-up for the rest.
 				if ( ! $this->refresh_send_lock() ) {
+					$this->schedule_follow_up( time() + self::SEND_THROTTLE, $critical );
 					return;
 				}
 			}
 
-			$state['failures']    = 0;
-			$state['retry_after'] = 0;
-			$this->save_send_state( $state );
+			// Only a send the API accepted ends the backoff. A run that found nothing to send must not, or
+			// repeated requests could keep the backoff at its first step while the API is down.
+			if ( $sent ) {
+				$state['failures']    = 0;
+				$state['retry_after'] = 0;
+				$this->save_send_state( $state );
+			}
 
 			if ( $has_more ) {
 				$this->schedule_follow_up( $state['next_send'], $critical );
