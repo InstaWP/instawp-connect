@@ -350,7 +350,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					Option::update_option( 'instawp_sync_connect_id', intval( $args[0] ) );
 					Option::update_option( 'instawp_is_staging', true );
 
-					instawp_get_source_site_detail();
+					instawp_get_source_site_detail( true );
 				},
 				'reset'                => array(
 					'staging' => function () {

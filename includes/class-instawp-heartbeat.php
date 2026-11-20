@@ -24,6 +24,19 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function register_events() {
+			// Runs on init: a scheduling error must not break the request.
+			try {
+				$this->schedule_events();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Heartbeat schedule check', $e );
+			}
+		}
+
+		private function schedule_events() {
+			if ( ! instawp_should_check_schedules() ) {
+				return;
+			}
+
 			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', array(), 'instawp-connect' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}

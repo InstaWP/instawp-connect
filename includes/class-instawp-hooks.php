@@ -580,7 +580,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		private function can_show_navbar() {
-			if ( ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
+			// Visitors never get the menu; stop before reading any setting.
+			if ( ! is_user_logged_in() || ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
 				return false;
 			}
 

@@ -461,7 +461,10 @@ class InstaWP_Rest_Api {
 		delete_option( 'instawp_sync_parent_connect_data' );
 		Option::update_option( 'instawp_sync_connect_id', $parent_connect_id );
 		Option::update_option( 'instawp_is_staging', true );
-		instawp_get_source_site_detail();
+
+		// Look the parent up on the next admin page load, not here: the platform records the link only after
+		// this request answers, so a lookup now finds no parent. Clear any wait so it is not delayed.
+		instawp_retry_later( 'source_site_detail', 0 );
 
 		return $this->send_response(
 			array(

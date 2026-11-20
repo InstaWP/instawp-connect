@@ -39,7 +39,24 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 		}
 
 		public function disconnect_whitelabel_site() {
-			if ( ! instawp_is_connect_whitelabelled() ) {
+			// Runs on admin_init: an error here (a malformed plan date, an API failure) must not break wp-admin.
+			try {
+				$this->maybe_disconnect_whitelabel_site();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'White-label trial disconnect', $e );
+
+				// Try again in an hour, not on every admin page load (e.g. a malformed plan date fails every time).
+				try {
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
+				} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// The wait is only an optimisation.
+				}
+			}
+		}
+
+		private function maybe_disconnect_whitelabel_site() {
+			// admin_init also fires for AJAX, Heartbeat and logged-out requests; only an admin's page load does this.
+			if ( ! instawp_is_connect_whitelabelled() || ! instawp_is_admin_page_load() ) {
 				return;
 			}
 
@@ -66,6 +83,12 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				return;
 			}
 
+			// After a failed attempt (an API failure, or an error caught by disconnect_whitelabel_site() such as a
+			// malformed plan date) try again in an hour, not on the next admin request.
+			if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
+				return;
+			}
+
 			$plan_activated_date = new DateTime( $connect_plan['plan_timestamp'] );
 			$today_date          = new DateTime( current_time( 'mysql' ) );
 			$diff                = $today_date->diff( $plan_activated_date );
@@ -76,8 +99,10 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 
 				if ( empty( $api_response['success'] ) ) {
 					error_log( 'Error disconnecting site: ' . $api_response['message'] );
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
 				} else {
 					Helper::set_connect_plan_id( 0 );
+					instawp_retry_later( 'whitelabel_disconnect', 0 );
 				}
 			}
 		}

@@ -53,6 +53,18 @@ defined( 'INSTAWP_API_URL' ) || define( 'INSTAWP_API_URL', '/api/v1' );
  */
 global $instawp_plugin;
 
+// These are read on every request, visitors included, and are stored non-autoloaded. Load them in one
+// query instead of one each. Options that do not exist (instawp_is_staging and instawp_parent_is_on_local
+// on most sites) are remembered as missing by the same query, so they cost no extra query either.
+// WordPress 6.4+; older versions read them one by one as before.
+if ( function_exists( 'wp_prime_option_caches' ) ) {
+	try {
+		wp_prime_option_caches( array( 'instawp_api_options', 'instawp_activity_log', 'instawp_is_staging', 'instawp_parent_is_on_local' ) );
+	} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+		// Only an optimisation: on failure each option is read on its own as before.
+	}
+}
+
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
@@ -84,13 +96,55 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	InstaWP_Tools::instawp_reset_permalink();
-	Option::delete_option( 'instawp_last_heartbeat_sent' );
-	Option::delete_option( 'instawp_migration_details' );
+	// Read by the activity log: events logged later in this request (the plugin_deactivated event fires on
+	// deactivated_plugin, after this hook) are sent once at the end of the request, since nothing will run
+	// a queued send once the plugin is inactive.
+	defined( 'INSTAWP_DEACTIVATING' ) || define( 'INSTAWP_DEACTIVATING', true );
 
-	$connect_id = instawp_get_connect_id();
-	if ( ! empty( $connect_id ) ) {
-		Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+	// Nothing in this hook may stop the plugin from deactivating: WordPress marks it inactive only after the
+	// hook returns, so an uncaught error here would leave it active.
+	try {
+		InstaWP_Tools::instawp_reset_permalink();
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation reset', $e );
+	}
+
+	try {
+		Option::delete_option( 'instawp_last_heartbeat_sent' );
+		Option::delete_option( 'instawp_migration_details' );
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation option cleanup', $e );
+	}
+
+	// Stop the plugin's background jobs: once it is inactive nothing handles them, and Action Scheduler
+	// (if another plugin keeps it running) would record each one as failed. Settings and data are kept;
+	// activating again re-creates the jobs. Not reached on a plugin update: WordPress deactivates
+	// silently during an update, which skips this hook.
+	// A failure here must never stop the plugin from deactivating.
+	try {
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( '', array(), 'instawp-connect' );
+		}
+		wp_unschedule_hook( 'instawp_cdn_stock_daily_purge' );
+		wp_unschedule_hook( 'instawp_cdn_purge_deferred' );
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation job cleanup', $e );
+	}
+
+	// Remove any Database Manager copy now instead of leaving it until the plugin is activated again.
+	try {
+		do_action( 'instawp_clean_database_manager' );
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation Database Manager cleanup', $e );
+	}
+
+	try {
+		$connect_id = instawp_get_connect_id();
+		if ( ! empty( $connect_id ) ) {
+			Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+		}
+	} catch ( \Throwable $e ) {
+		instawp_log_throwable( 'Deactivation disconnect', $e );
 	}
 }
 
