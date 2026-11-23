@@ -180,6 +180,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				// Checked here rather than first so that only a real connect attempt is reported.
+				if ( ! InstaWP_Access_Control::user_can_access() ) {
+					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
+					return;
+				}
+				InstaWP_Access_Control::mark_acting_for_user();
+
 				$api_key = Helper::get_api_key();
 
 				if ( empty( $api_key ) || $api_key !== $access_token ) {
@@ -349,7 +356,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
 			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
 
-			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+			if ( $migration_status === 'initiated' && $is_end_to_end && InstaWP_Access_Control::user_can_access() ) {
 
 				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
 				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
@@ -599,10 +606,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			if ( $can_show ) {
-				$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-				if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
-					$can_show = false;
-				}
+				$can_show = InstaWP_Access_Control::user_can_access();
 			}
 
 			return $can_show;
@@ -652,7 +656,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin( instawp_get_admin_capability() ) ) {
+			$is_admin       = instawp_is_admin( instawp_get_admin_capability() );
+			$access_allowed = InstaWP_Access_Control::user_can_access();
+
+			// Only an admin refused by the list is reported: the nonce is on every wp-admin page, so
+			// any logged-in user could otherwise file high-severity reports.
+			if ( $is_admin && ! $access_allowed ) {
+				InstaWP_Access_Control::queue_denial_report( 'instawp_clear_all' );
+			}
+
+			if ( ! $is_admin || ! $access_allowed ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',
@@ -759,9 +772,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function remove_edge_cache_submenu( $can_show, $current_user ) {
-			$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-			if ( ! empty( $selected_users ) && is_array( $selected_users ) ) {
-				$can_show = ! in_array( $current_user->ID, $selected_users );
+			if ( $can_show && is_object( $current_user ) && isset( $current_user->ID ) ) {
+				$can_show = InstaWP_Access_Control::user_can_access( $current_user->ID );
 			}
 
 			return $can_show;

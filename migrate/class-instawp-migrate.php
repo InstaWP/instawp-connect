@@ -36,6 +36,8 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
 
+			InstaWP_Access_Control::verify_ajax_access();
+
 			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( wp_unslash( $_POST['reset_type'] ) ) : '';
 			$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
@@ -57,6 +59,8 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
+
+			InstaWP_Access_Control::verify_ajax_access();
 
 			$return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
 			$connect_api_url = Helper::get_api_domain() . '/authorize?source=connect_manage&return_url=' . $return_url;
@@ -89,6 +93,9 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			if ( ! wp_verify_nonce( $settings_nonce, 'instawp_settings_nonce_action' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.', 'instawp-connect' ) ) );
 			}
+
+			// After the nonce, so a forged cross-site request cannot file denial reports in a user's name.
+			InstaWP_Access_Control::verify_ajax_access();
 
 			foreach ( InstaWP_Setting::get_plugin_settings_fields() as $field_id ) {
 				if ( ! isset( $form_data[ $field_id ] ) ) {

@@ -35,6 +35,8 @@ class InstaWP_Tools {
 		if ( ! instawp_is_admin( $capability, false ) ) {
 			wp_send_json_error( empty( $error_data ) ? array( 'message' => "Can't perform this action." ) : $error_data );
 		}
+
+		InstaWP_Access_Control::verify_ajax_access( $error_data );
 	}
 
 	public static function send_migration_log( $migrate_id, $label = '', $description = '', $payload = array() ) {
