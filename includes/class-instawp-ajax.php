@@ -102,7 +102,13 @@ class InstaWP_Ajax {
 			// The log is no longer at a public URL (see InstaWP::toggle_wp_debug()), so its text is returned.
 			$log = instawp_current_debug_log_tail();
 			if ( false === $log ) {
-				wp_send_json_error( array( 'message' => __( 'Debug log not found.', 'instawp-connect' ) ) );
+				// A WP_DEBUG_LOG naming a file that is not a .log file is refused: say so rather than "not found".
+				$refused = defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) && false === instawp_resolve_log_file( WP_DEBUG_LOG );
+				wp_send_json_error( array(
+					'message' => $refused
+						? __( 'The debug log set in WP_DEBUG_LOG is not a .log file, so it is not shown.', 'instawp-connect' )
+						: __( 'Debug log not found.', 'instawp-connect' ),
+				) );
 			}
 			wp_send_json_success( array( 'debug_log' => $log ) );
 		} elseif ( $type === 'error_log' ) {

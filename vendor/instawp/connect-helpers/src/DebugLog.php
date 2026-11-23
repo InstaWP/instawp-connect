@@ -48,6 +48,12 @@ class DebugLog {
 			}
 
 			$file = file_exists( $debug_log_file ) ? self::resolve_log_file( $debug_log_file ) : false;
+			if ( false === $file && $debug_log_file !== WP_CONTENT_DIR . '/debug.log' && file_exists( $debug_log_file ) ) {
+				return [
+					'success' => false,
+					'message' => esc_html( 'The debug log set in WP_DEBUG_LOG is not a .log file, so it is not shown.' ),
+				];
+			}
 			if ( false === $file ) {
 				return [
 					'success' => false,
