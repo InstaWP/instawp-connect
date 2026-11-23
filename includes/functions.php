@@ -759,7 +759,7 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 	 * history and the public copy is gone.
 	 *
 	 * A rename is instant at any size. If it is not possible (permissions, or the private file already
-	 * exists because entries were written to debug.log again after an earlier move), the last 5 MB is
+	 * exists and is not empty because entries were written to debug.log again after an earlier move), the last 5 MB is
 	 * appended to the private file and debug.log is then removed (emptied if it cannot be removed), so the
 	 * same entries are not copied again on the next switch.
 	 *
@@ -778,7 +778,8 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 			// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
 			// otherwise the copy below creates a fresh private file this process can write.
 			// An empty private file (for example a probe file that could not be removed) holds nothing, so the rename
-			// may replace it and the whole log is kept.
+			// may replace it and the whole log is kept. A line another request writes to the private file between
+			// this check and the rename is lost, as with a file created between file_exists() and rename().
 			clearstatcache( true, $target );
 			if ( ( ! file_exists( $target ) || 0 === @filesize( $target ) ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
 				return true;
@@ -853,8 +854,8 @@ if ( ! function_exists( 'instawp_can_use_private_debug_log' ) ) {
 				$usable = is_readable( $default ) && ( wp_is_writable( WP_CONTENT_DIR ) || wp_is_writable( $default ) );
 			}
 
-			// Remove the probe file this check created: the move must find no file there, so debug.log is
-			// renamed (all of it kept, same owner) rather than copied (only its last 5 MB).
+			// Remove the probe file this check created, so debug.log is renamed (all of it kept, same owner) rather
+			// than copied (only its last 5 MB). If it cannot be removed it stays empty, which the move also renames over.
 			if ( ! $existed ) {
 				@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 			}
