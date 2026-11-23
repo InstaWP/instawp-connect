@@ -656,12 +656,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
+			$is_admin       = instawp_is_admin( instawp_get_admin_capability() );
 			$access_allowed = InstaWP_Access_Control::user_can_access();
-			if ( ! $access_allowed ) {
+
+			// Only an admin refused by the list is reported: the nonce is on every wp-admin page, so
+			// any logged-in user could otherwise file high-severity reports.
+			if ( $is_admin && ! $access_allowed ) {
 				InstaWP_Access_Control::queue_denial_report( 'instawp_clear_all' );
 			}
 
-			if ( ! instawp_is_admin( instawp_get_admin_capability() ) || ! $access_allowed ) {
+			if ( ! $is_admin || ! $access_allowed ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',

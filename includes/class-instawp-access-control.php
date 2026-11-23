@@ -119,11 +119,39 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				return $old_value;
 			}
 
-			if ( isset( $GLOBALS['pagenow'] ) && 'options.php' === $GLOBALS['pagenow'] && 0 === strpos( $name, 'instawp' ) ) {
+			if ( 0 === strpos( $name, 'instawp' ) && self::is_options_php_writing( $name ) ) {
 				return $old_value;
 			}
 
 			return $value;
+		}
+
+		/**
+		 * Whether core's wp-admin/options.php is itself writing this option in this request: one of the
+		 * names it was posted (option_page=options), or one registered for the settings group it saves.
+		 * Only those, never every write during the request: the plugin's own hooks write instawp
+		 * options while options.php runs (e.g. the staging blog_public flag on Settings > Reading).
+		 *
+		 * @param string $name Lower-cased, trimmed option name.
+		 *
+		 * @return bool
+		 */
+		private static function is_options_php_writing( $name ) {
+			if ( ! isset( $GLOBALS['pagenow'] ) || 'options.php' !== $GLOBALS['pagenow'] ) {
+				return false;
+			}
+
+			// phpcs:disable WordPress.Security.NonceVerification.Missing -- read only to recognise options.php's own writes; options.php verifies the nonce.
+			$page = isset( $_POST['option_page'] ) ? sanitize_text_field( wp_unslash( $_POST['option_page'] ) ) : 'options';
+
+			if ( 'options' === $page ) {
+				$names = isset( $_POST['page_options'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['page_options'] ) ) ) : array();
+			} else {
+				$names = isset( $GLOBALS['allowed_options'][ $page ] ) ? (array) $GLOBALS['allowed_options'][ $page ] : array();
+			}
+			// phpcs:enable
+
+			return in_array( $name, array_map( 'strtolower', array_map( 'trim', $names ) ), true );
 		}
 
 		public function enter_background() {
@@ -257,7 +285,10 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 */
 		public static function get_summary_html() {
 			$state  = self::get_state();
-			$logins = array_filter( array_map( 'strval', $state['users'] ) );
+			$logins = array();
+			foreach ( $state['users'] as $user_id => $login ) {
+				$logins[] = '' === (string) $login ? '#' . (int) $user_id : (string) $login;
+			}
 			$logins = empty( $logins ) ? esc_html__( 'no users', 'instawp-connect' ) : esc_html( implode( ', ', $logins ) );
 
 			if ( self::MODE_ALLOW === $state['mode'] ) {

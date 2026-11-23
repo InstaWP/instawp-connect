@@ -22,9 +22,11 @@ top of the list; the list only narrows them.
 - Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'connect_id' => int, 'synced_at' => int )`.
   It is a cache of the dashboard's value. Only `save_from_dashboard()` can write it: a
   `pre_update_option` filter refuses every other write, under any spelling of the name (MySQL
-  matches `option_name` case-insensitively). The same filter keeps core's `wp-admin/options.php`
-  away from every `instawp*` option, since a refused admin could otherwise change the connect ID
-  the list is bound to; nothing in this plugin saves through options.php. WP-CLI is exempt so
+  matches `option_name` case-insensitively). The same filter refuses any `instawp*` option that
+  core's `wp-admin/options.php` is itself writing (the names posted in `page_options`, or those
+  registered for the settings group it saves), since a refused admin could otherwise change the
+  connect ID the list is bound to. The plugin's own hooks may still write `instawp*` options during
+  an options.php request (e.g. the staging `blog_public` flag on Settings > Reading). WP-CLI is exempt so
   `wp option` stays a recovery path. `instawp_save_management_settings` also
   refuses the access options by name (case-insensitively, as MySQL matches option names).
 - The list is bound to the connect it was saved under. If the site's connect ID changes (reconnected
@@ -33,10 +35,14 @@ top of the list; the list only narrows them.
 - client-app pushes it with `POST v2/manage/access-control` and repeats it in the heartbeat response
   (`data.access_control`), so a copy changed on the site is overwritten at the next heartbeat.
 - **Never received** (option absent): the legacy wp-admin blocklist `instawp_hide_plugin_to_users`
-  applies exactly as before. **Received once**: the legacy blocklist is no longer read, and the last
+  decides. It is now enforced on every Connect action, not only on the menu and admin bar as
+  before: a user on it is also refused on AJAX, the connect callback, the clear link and the
+  plugin-row links. **Received once**: the legacy blocklist is no longer read, and the last
   copy stays in force if client-app cannot be reached.
-- A hard reset or disconnect does not delete it. To clear it on a site that has lost its dashboard:
-  `wp option delete instawp_access_control`.
+- A hard reset or disconnect does not delete it; uninstalling the plugin does. To clear it on a site
+  that has lost its dashboard: `wp option delete instawp_access_control`.
+- A staging copy has its own connect ID, so it does not inherit the parent's list until the
+  dashboard manages the staging connect too.
 
 ## Enforcement (`includes/class-instawp-access-control.php`)
 
@@ -47,8 +53,11 @@ top of the list; the list only narrows them.
   status and cancel, migrations, 2-way sync, disconnect, plan change, settings
 - the Tools > InstaWP menu, the admin-bar icon and the Edge Cache submenu
 - the connect callback (`generate_api_key`) and the clear/reset link (`handle_clear_all`)
+- `POST v1/config` (connecting with an application password): an admin the list refuses is refused
 
-WP-CLI is always allowed. Users who are refused see no menu or icon; a direct page URL gets
+WP-CLI is always allowed. Uninstall (which runs without the plugin loaded) sends its disconnect
+with `X-InstaWP-Context: system` itself. The Database Manager auto-login is not list-gated: it
+needs a single-use token only the dashboard can mint. Users who are refused see no menu or icon; a direct page URL gets
 WordPress's standard "not allowed" page.
 
 ## Contract client-app must keep

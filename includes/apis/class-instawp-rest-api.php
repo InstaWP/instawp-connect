@@ -1347,6 +1347,12 @@ class InstaWP_Rest_Api {
 			return $error;
 		}
 
+		// The dashboard's access list covers connecting too: an admin it refuses cannot use an
+		// application password to (re)connect the site or replace its keys.
+		if ( ! InstaWP_Access_Control::user_can_access( $wp_user->ID ) ) {
+			return $error;
+		}
+
 		return true;
 	}
 
