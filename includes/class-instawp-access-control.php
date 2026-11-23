@@ -52,10 +52,61 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 */
 		const HEADER_USER_ID    = 'X-InstaWP-WP-User-Id';
 		const HEADER_USER_LOGIN = 'X-InstaWP-WP-User-Login';
+		const HEADER_CONTEXT    = 'X-InstaWP-Context';
+
+		const CONTEXT_USER   = 'user';
+		const CONTEXT_SYSTEM = 'system';
+		const CONTEXT_CLI    = 'cli';
+
+		/**
+		 * True only while save_from_dashboard() writes the option; every other write is refused.
+		 *
+		 * @var bool
+		 */
+		private static $writing = false;
+
+		/**
+		 * True while an Action Scheduler action runs. Its async runner is an admin-ajax loopback that
+		 * carries the cookies of whoever's request dispatched it, so the "current user" there is an
+		 * accident of timing, not the person the job is for.
+		 *
+		 * @var bool
+		 */
+		private static $in_background = false;
 
 		public function __construct() {
 			add_filter( 'http_request_args', array( $this, 'add_user_headers' ), 10, 2 );
+			add_filter( 'pre_update_option_' . self::OPTION, array( $this, 'protect_option' ), 10, 2 );
 			add_action( self::REPORT_HOOK, array( $this, 'send_denial_report' ) );
+			add_action( 'action_scheduler_before_execute', array( $this, 'enter_background' ) );
+			add_action( 'action_scheduler_after_execute', array( $this, 'leave_background' ) );
+			add_action( 'action_scheduler_failed_execution', array( $this, 'leave_background' ) );
+		}
+
+		/**
+		 * Keep the stored list unless save_from_dashboard() is writing it. Core's wp-admin/options.php
+		 * writes any option an admin posts, which would otherwise let a refused admin switch access off.
+		 * WP-CLI may write it: `wp option delete|update` is the documented recovery.
+		 *
+		 * @param mixed $value     New value.
+		 * @param mixed $old_value Stored value.
+		 *
+		 * @return mixed
+		 */
+		public function protect_option( $value, $old_value ) {
+			if ( self::$writing || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+				return $value;
+			}
+
+			return $old_value;
+		}
+
+		public function enter_background() {
+			self::$in_background = true;
+		}
+
+		public function leave_background() {
+			self::$in_background = false;
 		}
 
 		/**
@@ -64,7 +115,26 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 * @return bool
 		 */
 		public static function is_managed() {
-			return is_array( Option::get_option( self::OPTION, false ) );
+			return is_array( self::get_cached() );
+		}
+
+		/**
+		 * The stored list, or false. A list saved under a DIFFERENT connect is ignored: the site was
+		 * reconnected to another account (or is a staging copy of the site that owned it), and that
+		 * account's dashboard never set it.
+		 *
+		 * @return array|false
+		 */
+		private static function get_cached() {
+			$state = Option::get_option( self::OPTION, false );
+			if ( ! is_array( $state ) ) {
+				return false;
+			}
+
+			$bound   = (int) Helper::get_args_option( 'connect_id', $state, 0 );
+			$current = (int) instawp_get_connect_id();
+
+			return ( $bound && $current && $bound !== $current ) ? false : $state;
 		}
 
 		/**
@@ -73,7 +143,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 * @return array{mode: string, users: array<int, string>, synced_at: int}
 		 */
 		public static function get_state() {
-			$state = Option::get_option( self::OPTION, false );
+			$state = self::get_cached();
 			$state = is_array( $state ) ? $state : array();
 
 			$mode  = Helper::get_args_option( 'mode', $state, self::MODE_OFF );
@@ -117,7 +187,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 			}
 
 			$state  = self::get_state();
-			$listed = array_key_exists( $user_id, $state['users'] );
+			$listed = self::is_listed( $user_id, $state['users'] );
 
 			if ( self::MODE_ALLOW === $state['mode'] ) {
 				return $user_id > 0 && $listed;
@@ -128,6 +198,30 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 			}
 
 			return true;
+		}
+
+		/**
+		 * Whether a user is on the list. The stored login must match too, when there is one: a user
+		 * ID can be handed to a new account after the listed one is deleted.
+		 *
+		 * @param int                $user_id User ID.
+		 * @param array<int, string> $users   Stored list, id => login.
+		 *
+		 * @return bool
+		 */
+		private static function is_listed( $user_id, $users ) {
+			if ( $user_id <= 0 || ! array_key_exists( $user_id, $users ) ) {
+				return false;
+			}
+
+			$login = (string) $users[ $user_id ];
+			if ( '' === $login ) {
+				return true;
+			}
+
+			$user = get_userdata( $user_id );
+
+			return $user instanceof WP_User && $user->user_login === $login;
 		}
 
 		/**
@@ -184,22 +278,29 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 
 			$sanitized = array();
 			foreach ( $users as $user ) {
-				$user_id = is_array( $user ) && isset( $user['id'] ) ? absint( $user['id'] ) : 0;
-				if ( ! $user_id ) {
+				$user_id = is_array( $user ) && isset( $user['id'] ) && is_numeric( $user['id'] ) ? (int) $user['id'] : 0;
+				if ( $user_id <= 0 ) {
 					return new WP_Error( 'invalid_access_control_users', __( 'Every access control user needs a numeric id.', 'instawp-connect' ) );
 				}
 
-				$sanitized[ $user_id ] = isset( $user['login'] ) ? sanitize_user( (string) $user['login'] ) : '';
+				$login                 = isset( $user['login'] ) && is_scalar( $user['login'] ) ? (string) $user['login'] : '';
+				$sanitized[ $user_id ] = sanitize_user( $login );
 			}
 
 			$state = array(
-				'mode'      => $mode,
-				'users'     => $sanitized,
-				'synced_at' => time(),
+				'mode'       => $mode,
+				'users'      => $sanitized,
+				'connect_id' => (int) instawp_get_connect_id(),
+				'synced_at'  => time(),
 			);
 
 			// Autoloaded: read on every admin request (menu, admin bar).
-			update_option( self::OPTION, $state, true );
+			self::$writing = true;
+			try {
+				update_option( self::OPTION, $state, true );
+			} finally {
+				self::$writing = false;
+			}
 
 			return true;
 		}
@@ -328,8 +429,10 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 					array(
 						'user_id'     => (int) $user->ID,
 						'user_login'  => (string) $user->user_login,
+						'user_caps'   => implode( ',', (array) $user->roles ),
+						'user_ip'     => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
 						'action'      => (string) $action,
-						'occurred_at' => gmdate( 'c', $now ),
+						'occurred_at' => gmdate( 'Y-m-d H:i:s', $now ),
 					),
 				),
 				'instawp-connect'
@@ -337,8 +440,9 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		}
 
 		/**
-		 * Send a queued denial to the dashboard. Runs from Action Scheduler, so it never delays
-		 * the refused request.
+		 * Send a queued denial to the dashboard's Activity Log. Runs from Action Scheduler, so it never
+		 * delays the refused request. Goes straight to the activity-log API rather than through the
+		 * plugin's activity log, so it is recorded even where that feature is switched off.
 		 *
 		 * @param array $report Denial details.
 		 *
@@ -350,7 +454,30 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				return;
 			}
 
-			Curl::do_curl( "connects/{$connect_id}/access-denied", $report );
+			$row = array(
+				'action'         => 'instawp_access_denied',
+				'severity'       => 'high',
+				'object_type'    => 'InstaWP',
+				'object_subtype' => '',
+				'object_name'    => (string) Helper::get_args_option( 'action', $report, '' ),
+				'object_id'      => 0,
+				'user_id'        => (int) Helper::get_args_option( 'user_id', $report, 0 ),
+				'user_name'      => (string) Helper::get_args_option( 'user_login', $report, '' ),
+				'user_caps'      => (string) Helper::get_args_option( 'user_caps', $report, '' ),
+				'user_ip'        => (string) Helper::get_args_option( 'user_ip', $report, '' ),
+				'timestamp'      => (string) Helper::get_args_option( 'occurred_at', $report, gmdate( 'Y-m-d H:i:s' ) ),
+			);
+
+			$logs = array(
+				array(
+					'action'    => $row['action'],
+					'data_type' => 'instawp',
+					'meta'      => array(),
+					'data'      => array( $row ),
+				),
+			);
+
+			Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ), array(), 'POST', null, Helper::get_jwt(), Helper::get_api_server_domain() );
 		}
 
 		/**
@@ -363,22 +490,62 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 * @return array
 		 */
 		public function add_user_headers( $args, $url ) {
-			if ( wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+			if ( ! self::is_api_url( $url ) ) {
 				return $args;
 			}
 
-			$api_domain = Helper::get_api_domain();
-			if ( empty( $api_domain ) || 0 !== strpos( (string) $url, untrailingslashit( $api_domain ) . '/api/' ) ) {
-				return $args;
-			}
-
-			$user = wp_get_current_user();
+			$context = self::get_request_context();
+			$user    = self::CONTEXT_USER === $context ? wp_get_current_user() : null;
 
 			$args['headers']                            = isset( $args['headers'] ) && is_array( $args['headers'] ) ? $args['headers'] : array();
-			$args['headers'][ self::HEADER_USER_ID ]    = (string) $user->ID;
-			$args['headers'][ self::HEADER_USER_LOGIN ] = (string) $user->user_login;
+			$args['headers'][ self::HEADER_CONTEXT ]    = $context;
+			$args['headers'][ self::HEADER_USER_ID ]    = $user ? (string) $user->ID : '0';
+			$args['headers'][ self::HEADER_USER_LOGIN ] = $user ? (string) $user->user_login : '';
 
 			return $args;
+		}
+
+		/**
+		 * Who this request is acting for: a logged-in user, WP-CLI, or the site itself (cron, an
+		 * Action Scheduler action, a REST call from InstaWP, a logged-out visitor).
+		 *
+		 * @return string
+		 */
+		public static function get_request_context() {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return self::CONTEXT_CLI;
+			}
+
+			if ( self::$in_background || wp_doing_cron() || ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+				return self::CONTEXT_SYSTEM;
+			}
+
+			return self::CONTEXT_USER;
+		}
+
+		/**
+		 * Whether a URL is on the InstaWP API: same scheme and host as the API domain, under /api/.
+		 * Compared parsed, because a stored API domain with a trailing slash makes do_curl() build
+		 * "//api/".
+		 *
+		 * @param string $url Request URL.
+		 *
+		 * @return bool
+		 */
+		private static function is_api_url( $url ) {
+			$api_domain = Helper::get_api_domain();
+			if ( empty( $api_domain ) ) {
+				return false;
+			}
+
+			$api = wp_parse_url( $api_domain );
+			$req = wp_parse_url( (string) $url );
+
+			return is_array( $api ) && is_array( $req )
+				&& isset( $api['host'], $req['host'], $req['path'] )
+				&& strtolower( $api['host'] ) === strtolower( $req['host'] )
+				&& Helper::get_args_option( 'scheme', $api, 'https' ) === Helper::get_args_option( 'scheme', $req, '' )
+				&& 0 === strpos( '/' . ltrim( $req['path'], '/' ), '/api/' );
 		}
 	}
 }

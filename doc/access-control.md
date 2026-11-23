@@ -11,16 +11,22 @@ dashboard, never from wp-admin, so a new admin account cannot add itself.
 | `block` | Everyone except the listed users |
 | `allow` | Only the listed users |
 
-Users are stored by WordPress user ID, with the login kept for display.
+Users are stored by WordPress user ID plus login. When a login is stored it must match too, because
+a user ID can be handed to a new account after the listed one is deleted.
 
 The role/capability checks (`manage_options`, `InstaWP_Setting::get_allowed_role()`) still apply on
 top of the list; the list only narrows them.
 
 ## Storage and sync
 
-- Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'synced_at' => int )`.
-  It is a cache of the dashboard's value. wp-admin never writes it, and `instawp_save_management_settings`
-  refuses its name.
+- Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'connect_id' => int, 'synced_at' => int )`.
+  It is a cache of the dashboard's value. Only `save_from_dashboard()` can write it: a
+  `pre_update_option_` filter refuses every other write, including core's `wp-admin/options.php`.
+  WP-CLI is exempt so `wp option` stays a recovery path. `instawp_save_management_settings` also
+  refuses the access options by name (case-insensitively, as MySQL matches option names).
+- The list is bound to the connect it was saved under. If the site's connect ID changes (reconnected
+  to another account, or a staging copy of a managed site), the cached list is ignored until that
+  account's dashboard sends one.
 - client-app pushes it with `POST v2/manage/access-control` and repeats it in the heartbeat response
   (`data.access_control`), so a copy changed on the site is overwritten at the next heartbeat.
 - **Never received** (option absent): the legacy wp-admin blocklist `instawp_hide_plugin_to_users`
@@ -77,12 +83,24 @@ A malformed body is rejected as a whole and the previous list is kept.
 
 ## Acting user on API requests
 
-Every request the plugin makes to the InstaWP API (`<api domain>/api/...`) for a logged-in user
-carries `X-InstaWP-WP-User-Id` and `X-InstaWP-WP-User-Login` (`http_request_args` filter). Requests
-from cron or WP-CLI carry neither. client-app can apply the same list to the requests that reach it.
+Every request the plugin makes to the InstaWP API (same scheme and host as the API domain, path
+under `/api/`) carries three headers (`http_request_args` filter):
+
+| Header | Value |
+|---|---|
+| `X-InstaWP-Context` | `user` (a logged-in user), `system` (cron, an Action Scheduler action, a REST call from InstaWP, logged out) or `cli` (WP-CLI) |
+| `X-InstaWP-WP-User-Id` | the user's ID, `0` outside `user` |
+| `X-InstaWP-WP-User-Login` | the user's login, empty outside `user` |
+
+Inside an Action Scheduler action the context is always `system`: its async runner is an admin-ajax
+loopback carrying the cookies of whoever's request dispatched it, so the logged-in user there is not
+the person the job is for. client-app applies the list to `user` requests and treats a request with
+no `X-InstaWP-Context` header at all as coming from a plugin too old to enforce it.
 
 ## Denied attempts
 
-A refused AJAX action is reported to `POST v2/connects/{connect_id}/access-denied` with
-`user_id`, `user_login`, `action` and `occurred_at`, from Action Scheduler (never inside the refused
-request), at most once per user and action per hour (`instawp_access_denied_reported`).
+A refused AJAX action, connect callback or clear/connect-id link is written to the dashboard's
+Activity Log: `POST connects/{connect_id}/activity-log` on the activity-log API (api.instawp.io,
+JWT auth), as action `instawp_access_denied` with the refused action in `object_name`. It is sent
+from Action Scheduler (never inside the refused request), even when the plugin's own activity log is
+off, at most once per user and action per hour (`instawp_access_denied_reported`).

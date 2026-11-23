@@ -75,8 +75,6 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'You are not allowed to change these settings.', 'instawp-connect' ) ) );
 			}
 
-			InstaWP_Access_Control::verify_ajax_access();
-
 			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( wp_unslash( $_REQUEST['form_data'] ) ) : '';
 			$_form_data = str_replace( 'amp;', '', $_form_data );
 
@@ -95,6 +93,9 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			if ( ! wp_verify_nonce( $settings_nonce, 'instawp_settings_nonce_action' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.', 'instawp-connect' ) ) );
 			}
+
+			// After the nonce, so a forged cross-site request cannot file denial reports in a user's name.
+			InstaWP_Access_Control::verify_ajax_access();
 
 			foreach ( InstaWP_Setting::get_plugin_settings_fields() as $field_id ) {
 				if ( ! isset( $form_data[ $field_id ] ) ) {

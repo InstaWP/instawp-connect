@@ -170,7 +170,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function generate_api_key() {
-			if ( ! current_user_can( instawp_get_admin_capability() ) || ! InstaWP_Access_Control::user_can_access() ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				return;
 			}
 
@@ -180,6 +180,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				// Checked here rather than first so that only a real connect attempt is reported.
+				if ( ! InstaWP_Access_Control::user_can_access() ) {
+					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
+					return;
+				}
+
 				$api_key = Helper::get_api_key();
 
 				if ( empty( $api_key ) || $api_key !== $access_token ) {
@@ -349,7 +355,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
 			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
 
-			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+			if ( $migration_status === 'initiated' && $is_end_to_end && InstaWP_Access_Control::user_can_access() ) {
 
 				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
 				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
@@ -649,7 +655,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin( instawp_get_admin_capability() ) || ! InstaWP_Access_Control::user_can_access() ) {
+			$access_allowed = InstaWP_Access_Control::user_can_access();
+			if ( ! $access_allowed ) {
+				InstaWP_Access_Control::queue_denial_report( 'instawp_clear_all' );
+			}
+
+			if ( ! instawp_is_admin( instawp_get_admin_capability() ) || ! $access_allowed ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',
