@@ -26,6 +26,19 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/access-control', array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_access_control' ),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'set_access_control' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/cdn', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'set_cdn_state' ),
@@ -244,6 +257,57 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'success' => true,
 			'message' => __( 'CDN state saved.', 'instawp-connect' ),
 		) );
+	}
+
+	/**
+	 * Return who may use InstaWP Connect, plus the legacy wp-admin blocklist for the dashboard's
+	 * one-time import. A site that answers this route supports dashboard-managed access control.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_access_control( WP_REST_Request $request ) {
+
+		// No remote-management toggle on purpose, as for /cdn: the dashboard must always be able
+		// to read and correct who may use Connect.
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		return $this->send_response( array_merge( array( 'success' => true ), InstaWP_Access_Control::get_report() ) );
+	}
+
+	/**
+	 * Save who may use InstaWP Connect, as set on the dashboard.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_access_control( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$result = InstaWP_Access_Control::save_from_dashboard(
+			array(
+				'mode'  => $request->get_param( 'mode' ),
+				'users' => $request->get_param( 'users' ),
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => $result->get_error_message(),
+			) );
+		}
+
+		return $this->send_response( array_merge( array( 'success' => true ), InstaWP_Access_Control::get_report() ) );
 	}
 
 	/**

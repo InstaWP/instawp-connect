@@ -170,7 +170,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function generate_api_key() {
-			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) || ! InstaWP_Access_Control::user_can_access() ) {
 				return;
 			}
 
@@ -599,10 +599,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			if ( $can_show ) {
-				$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-				if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
-					$can_show = false;
-				}
+				$can_show = InstaWP_Access_Control::user_can_access();
 			}
 
 			return $can_show;
@@ -652,7 +649,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin( instawp_get_admin_capability() ) ) {
+			if ( ! instawp_is_admin( instawp_get_admin_capability() ) || ! InstaWP_Access_Control::user_can_access() ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',
@@ -759,9 +756,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function remove_edge_cache_submenu( $can_show, $current_user ) {
-			$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-			if ( ! empty( $selected_users ) && is_array( $selected_users ) ) {
-				$can_show = ! in_array( $current_user->ID, $selected_users );
+			if ( $can_show && is_object( $current_user ) && isset( $current_user->ID ) ) {
+				$can_show = InstaWP_Access_Control::user_can_access( $current_user->ID );
 			}
 
 			return $can_show;

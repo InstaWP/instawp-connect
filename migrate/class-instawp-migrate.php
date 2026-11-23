@@ -36,6 +36,8 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
 
+			InstaWP_Access_Control::verify_ajax_access();
+
 			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( wp_unslash( $_POST['reset_type'] ) ) : '';
 			$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
@@ -58,6 +60,8 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
 			}
 
+			InstaWP_Access_Control::verify_ajax_access();
+
 			$return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
 			$connect_api_url = Helper::get_api_domain() . '/authorize?source=connect_manage&return_url=' . $return_url;
 
@@ -70,6 +74,8 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'You are not allowed to change these settings.', 'instawp-connect' ) ) );
 			}
+
+			InstaWP_Access_Control::verify_ajax_access();
 
 			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( wp_unslash( $_REQUEST['form_data'] ) ) : '';
 			$_form_data = str_replace( 'amp;', '', $_form_data );
