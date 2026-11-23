@@ -11,17 +11,19 @@ class DebugLog {
 	const MAX_READ_BYTES = 2097152;
 
 	/**
-	 * Whether a path is a .log file, checked on the resolved path: a WP_DEBUG_LOG pointed at wp-config.php or any
-	 * other file (or a .log symlink to one) must not be shown in the log viewer.
+	 * The resolved path of a .log file, or false: a WP_DEBUG_LOG pointed at wp-config.php or any other file (or a
+	 * .log symlink to one) must not be shown in the log viewer. The cached result is cleared first and the caller
+	 * opens the returned path, so a link swapped in after an earlier check is not followed.
 	 *
 	 * @param string $path File path.
 	 *
-	 * @return bool
+	 * @return string|false
 	 */
-	private static function is_log_file( $path ) {
+	private static function resolve_log_file( $path ) {
+		clearstatcache( true, $path );
 		$real = realpath( $path );
 
-		return false !== $real && 1 === preg_match( '/\.log$/i', $real );
+		return ( false !== $real && is_file( $real ) && 1 === preg_match( '/\.log\z/i', $real ) ) ? $real : false;
 	}
 
     public function fetch() {
@@ -32,7 +34,8 @@ class DebugLog {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				$debug_enabled = true;
 
-				if ( is_string( WP_DEBUG_LOG ) && file_exists( WP_DEBUG_LOG ) && self::is_log_file( WP_DEBUG_LOG ) ) {
+				if ( is_string( WP_DEBUG_LOG ) && file_exists( WP_DEBUG_LOG ) ) {
+					// A configured file that is not a .log file is refused, not swapped for an older debug.log.
 					$debug_log_file = WP_DEBUG_LOG;
 				}
 			}
@@ -44,8 +47,8 @@ class DebugLog {
 				];
 			}
 
-			$file = $debug_log_file;
-			if ( ! file_exists( $file ) || ! self::is_log_file( $file ) ) {
+			$file = file_exists( $debug_log_file ) ? self::resolve_log_file( $debug_log_file ) : false;
+			if ( false === $file ) {
 				return [
 					'success' => false,
 					'message' => esc_html( 'Debug file not found!' ),

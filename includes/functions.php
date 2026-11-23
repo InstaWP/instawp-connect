@@ -869,19 +869,22 @@ if ( ! function_exists( 'instawp_can_use_private_debug_log' ) ) {
 	}
 }
 
-if ( ! function_exists( 'instawp_is_log_file' ) ) {
+if ( ! function_exists( 'instawp_resolve_log_file' ) ) {
 	/**
-	 * Whether a path is a .log file, checked on the resolved path: a WP_DEBUG_LOG pointed at wp-config.php or any
-	 * other file (or a .log symlink to one) must not be shown by the Debug Log button.
+	 * The resolved path of a .log file, or false: a WP_DEBUG_LOG pointed at wp-config.php or any other file (or a
+	 * .log symlink to one) must not be shown by the Debug Log button. The cached result is cleared first and the
+	 * caller opens the returned path, so a link swapped in after an earlier check is not followed.
 	 *
 	 * @param string $path File path.
 	 *
-	 * @return bool
+	 * @return string|false
 	 */
-	function instawp_is_log_file( $path ) {
-		$real = realpath( (string) $path );
+	function instawp_resolve_log_file( $path ) {
+		$path = (string) $path;
+		clearstatcache( true, $path );
+		$real = realpath( $path );
 
-		return false !== $real && 1 === preg_match( '/\.log$/i', $real );
+		return ( false !== $real && is_file( $real ) && 1 === preg_match( '/\.log\z/i', $real ) ) ? $real : false;
 	}
 }
 
@@ -897,7 +900,8 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 		try {
 			$file   = WP_CONTENT_DIR . '/debug.log';
 			$stored = Option::get_option( 'instawp_debug_log_file' );
-			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) && instawp_is_log_file( WP_DEBUG_LOG ) ) {
+			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
+				// A configured file that is not a .log file is refused below, not swapped for another log.
 				$file = WP_DEBUG_LOG;
 			} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
 				&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' ) ) {
@@ -906,7 +910,8 @@ if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
 				$file = $stored;
 			}
 
-			$fh = is_file( $file ) && instawp_is_log_file( $file ) ? @fopen( $file, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$real = is_file( $file ) ? instawp_resolve_log_file( $file ) : false;
+			$fh   = false !== $real ? @fopen( $real, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 			if ( ! $fh ) {
 				return false;
 			}
