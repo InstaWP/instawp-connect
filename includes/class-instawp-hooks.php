@@ -200,10 +200,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			// A dashboard that honoured iwp_code=1 sends a one-time code instead of the key and JWT.
 			$code = isset( $_REQUEST['code'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['code'] ) ) : '';
 			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				// The same access check as the access_token path above, before the code is traded.
+				// The same access check as the access_token path above, before the code is traded. The untraded
+				// code is taken out of the address bar.
 				if ( ! InstaWP_Access_Control::user_can_access() ) {
 					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
-					return;
+					wp_safe_redirect( remove_query_arg( array( 'code', 'success', 'instawp-nonce', 'iwp_code' ) ) );
+					exit();
 				}
 				InstaWP_Access_Control::mark_acting_for_user();
 
@@ -726,7 +728,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function admin_notice() {
-			if ( isset( $_GET['instawp-connect-failed'] ) && current_user_can( instawp_get_admin_capability() ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['instawp-connect-failed'] ) && current_user_can( instawp_get_admin_capability() ) && InstaWP_Access_Control::user_can_access() ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				?>
 				<div class="notice notice-error is-dismissible">
 					<?php if ( 'invalid' === $_GET['instawp-connect-failed'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
