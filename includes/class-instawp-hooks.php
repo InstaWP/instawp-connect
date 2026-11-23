@@ -185,6 +185,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
 					return;
 				}
+				InstaWP_Access_Control::mark_acting_for_user();
 
 				$api_key = Helper::get_api_key();
 

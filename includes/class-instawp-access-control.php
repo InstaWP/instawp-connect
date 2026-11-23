@@ -74,31 +74,56 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 */
 		private static $in_background = false;
 
+		/**
+		 * True once this request has passed a Connect access check (an allowed user doing a Connect
+		 * action). Only then do API calls say they act for a user: housekeeping that merely runs
+		 * while someone is logged in (CDN purge on save, plugin activation) acts for the site.
+		 *
+		 * @var bool
+		 */
+		private static $acting_for_user = false;
+
 		public function __construct() {
 			add_filter( 'http_request_args', array( $this, 'add_user_headers' ), 10, 2 );
-			add_filter( 'pre_update_option_' . self::OPTION, array( $this, 'protect_option' ), 10, 2 );
+			add_filter( 'pre_update_option', array( $this, 'protect_options' ), 10, 3 );
 			add_action( self::REPORT_HOOK, array( $this, 'send_denial_report' ) );
 			add_action( 'action_scheduler_before_execute', array( $this, 'enter_background' ) );
 			add_action( 'action_scheduler_after_execute', array( $this, 'leave_background' ) );
 			add_action( 'action_scheduler_failed_execution', array( $this, 'leave_background' ) );
+			add_action( 'action_scheduler_execution_ignored', array( $this, 'leave_background' ) );
+			add_action( 'action_scheduler_failed_validation', array( $this, 'leave_background' ) );
 		}
 
 		/**
-		 * Keep the stored list unless save_from_dashboard() is writing it. Core's wp-admin/options.php
-		 * writes any option an admin posts, which would otherwise let a refused admin switch access off.
-		 * WP-CLI may write it: `wp option delete|update` is the documented recovery.
+		 * Keep the stored list unless save_from_dashboard() is writing it, and keep core's
+		 * wp-admin/options.php away from every instawp option: it writes any option an admin posts,
+		 * so a refused admin could otherwise switch access off, or change the connect id the list is
+		 * bound to. Nothing in this plugin saves through options.php. Names are compared lower-cased
+		 * because MySQL matches option_name case-insensitively while the per-option filter does not.
+		 * WP-CLI may write: `wp option delete|update` is the documented recovery.
 		 *
-		 * @param mixed $value     New value.
-		 * @param mixed $old_value Stored value.
+		 * @param mixed  $value     New value.
+		 * @param string $option    Option name, as the caller spelled it.
+		 * @param mixed  $old_value Stored value.
 		 *
 		 * @return mixed
 		 */
-		public function protect_option( $value, $old_value ) {
+		public function protect_options( $value, $option, $old_value ) {
 			if ( self::$writing || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 				return $value;
 			}
 
-			return $old_value;
+			$name = strtolower( trim( (string) $option ) );
+
+			if ( self::OPTION === $name ) {
+				return $old_value;
+			}
+
+			if ( isset( $GLOBALS['pagenow'] ) && 'options.php' === $GLOBALS['pagenow'] && 0 === strpos( $name, 'instawp' ) ) {
+				return $old_value;
+			}
+
+			return $value;
 		}
 
 		public function enter_background() {
@@ -221,7 +246,8 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 
 			$user = get_userdata( $user_id );
 
-			return $user instanceof WP_User && $user->user_login === $login;
+			// Lower-cased: WordPress logins are unique regardless of case.
+			return $user instanceof WP_User && strtolower( $user->user_login ) === strtolower( $login );
 		}
 
 		/**
@@ -278,7 +304,8 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 
 			$sanitized = array();
 			foreach ( $users as $user ) {
-				$user_id = is_array( $user ) && isset( $user['id'] ) && is_numeric( $user['id'] ) ? (int) $user['id'] : 0;
+				$raw     = is_array( $user ) && isset( $user['id'] ) ? $user['id'] : null;
+				$user_id = is_int( $raw ) || ( is_string( $raw ) && ctype_digit( $raw ) ) ? (int) $raw : 0;
 				if ( $user_id <= 0 ) {
 					return new WP_Error( 'invalid_access_control_users', __( 'Every access control user needs a numeric id.', 'instawp-connect' ) );
 				}
@@ -377,6 +404,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		 */
 		public static function verify_ajax_access( $error_data = array() ) {
 			if ( self::user_can_access() ) {
+				self::mark_acting_for_user();
 				return;
 			}
 
@@ -430,7 +458,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 						'user_id'     => (int) $user->ID,
 						'user_login'  => (string) $user->user_login,
 						'user_caps'   => implode( ',', (array) $user->roles ),
-						'user_ip'     => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+						'user_ip'     => InstaWP_Activity_Log::get_visitor_ip(),
 						'action'      => (string) $action,
 						'occurred_at' => gmdate( 'Y-m-d H:i:s', $now ),
 					),
@@ -506,8 +534,18 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		}
 
 		/**
-		 * Who this request is acting for: a logged-in user, WP-CLI, or the site itself (cron, an
-		 * Action Scheduler action, a REST call from InstaWP, a logged-out visitor).
+		 * Record that this request passed a Connect access check, so its API calls act for the user.
+		 *
+		 * @return void
+		 */
+		public static function mark_acting_for_user() {
+			self::$acting_for_user = true;
+		}
+
+		/**
+		 * Who this request is acting for: a user doing a Connect action they were allowed, WP-CLI, or
+		 * the site itself (cron, an Action Scheduler action, a REST call from InstaWP, housekeeping
+		 * that runs during someone's request, a logged-out visitor).
 		 *
 		 * @return string
 		 */
@@ -516,7 +554,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				return self::CONTEXT_CLI;
 			}
 
-			if ( self::$in_background || wp_doing_cron() || ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+			if ( ! self::$acting_for_user || self::$in_background || wp_doing_cron() || ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
 				return self::CONTEXT_SYSTEM;
 			}
 

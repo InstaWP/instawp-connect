@@ -21,8 +21,11 @@ top of the list; the list only narrows them.
 
 - Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'connect_id' => int, 'synced_at' => int )`.
   It is a cache of the dashboard's value. Only `save_from_dashboard()` can write it: a
-  `pre_update_option_` filter refuses every other write, including core's `wp-admin/options.php`.
-  WP-CLI is exempt so `wp option` stays a recovery path. `instawp_save_management_settings` also
+  `pre_update_option` filter refuses every other write, under any spelling of the name (MySQL
+  matches `option_name` case-insensitively). The same filter keeps core's `wp-admin/options.php`
+  away from every `instawp*` option, since a refused admin could otherwise change the connect ID
+  the list is bound to; nothing in this plugin saves through options.php. WP-CLI is exempt so
+  `wp option` stays a recovery path. `instawp_save_management_settings` also
   refuses the access options by name (case-insensitively, as MySQL matches option names).
 - The list is bound to the connect it was saved under. If the site's connect ID changes (reconnected
   to another account, or a staging copy of a managed site), the cached list is ignored until that
@@ -84,15 +87,19 @@ A malformed body is rejected as a whole and the previous list is kept.
 ## Acting user on API requests
 
 Every request the plugin makes to the InstaWP API (same scheme and host as the API domain, path
-under `/api/`) carries three headers (`http_request_args` filter):
+under `/api/`) carries three headers (`http_request_args` filter). The activity-log API is a
+different host and gets none.
 
 | Header | Value |
 |---|---|
-| `X-InstaWP-Context` | `user` (a logged-in user), `system` (cron, an Action Scheduler action, a REST call from InstaWP, logged out) or `cli` (WP-CLI) |
+| `X-InstaWP-Context` | `user` (a user doing a Connect action they passed the access check for), `system` (everything else: cron, an Action Scheduler action, a REST call from InstaWP, housekeeping such as a CDN purge on save or plugin activation, logged out) or `cli` (WP-CLI) |
 | `X-InstaWP-WP-User-Id` | the user's ID, `0` outside `user` |
 | `X-InstaWP-WP-User-Login` | the user's login, empty outside `user` |
 
-Inside an Action Scheduler action the context is always `system`: its async runner is an admin-ajax
+`user` is opt-in: it is set only once the request has passed a Connect access check
+(`verify_ajax_access()` or the connect callback), so housekeeping that merely runs while someone
+is logged in is never refused by client-app for that person. Inside an Action Scheduler action the
+context is always `system`: its async runner is an admin-ajax
 loopback carrying the cookies of whoever's request dispatched it, so the logged-in user there is not
 the person the job is for. client-app applies the list to `user` requests and treats a request with
 no `X-InstaWP-Context` header at all as coming from a plugin too old to enforce it.
@@ -103,4 +110,6 @@ A refused AJAX action, connect callback or clear/connect-id link is written to t
 Activity Log: `POST connects/{connect_id}/activity-log` on the activity-log API (api.instawp.io,
 JWT auth), as action `instawp_access_denied` with the refused action in `object_name`. It is sent
 from Action Scheduler (never inside the refused request), even when the plugin's own activity log is
-off, at most once per user and action per hour (`instawp_access_denied_reported`).
+off, at most once per user and action per hour (`instawp_access_denied_reported`). The IP is recorded
+only when the site collects one (`instawp_log_visitor_ip_source`, off by default), as for every
+other activity-log row.

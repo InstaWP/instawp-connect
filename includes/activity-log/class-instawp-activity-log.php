@@ -777,6 +777,16 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
 		private function get_ip_address() {
+			return self::get_visitor_ip();
+		}
+
+		/**
+		 * The visitor's IP from the header the site chose in instawp_log_visitor_ip_source, or '' when
+		 * the site collects none (the default).
+		 *
+		 * @return string
+		 */
+		public static function get_visitor_ip() {
 			$header_key = Option::get_option( 'instawp_log_visitor_ip_source' );
 
 			if ( empty( $header_key ) ) {
