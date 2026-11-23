@@ -71,7 +71,8 @@ on servers that ignore `.htaccess` the unguessable name is the protection.
   paths. The stored name is used only if it is a `debug-<32 letters/digits>.log` file directly in this
   site's `wp-content/instawp-logs/`.
 - The Developer tab's **Debug Log** button shows the last 2 MB of the current log as text in a new tab
-  (`instawp_current_debug_log_tail()`), since the log has no public URL. With debug logging off again it
+  (`instawp_current_debug_log_tail()`), since the log has no public URL. It reads only a `.log` file (checked on
+  the resolved path), so a `WP_DEBUG_LOG` pointed at `wp-config.php` or another file is never shown. With debug logging off again it
   shows this site's private file history (never a stored name from another site); with no log it says so.
 - `InstaWP_Tools::cli_archive_wordpress_files()` leaves `wp-content/instawp-logs/` out of the archive, as it
   already did for `debug.log`.
