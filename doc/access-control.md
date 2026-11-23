@@ -20,20 +20,9 @@ top of the list; the list only narrows them.
 ## Storage and sync
 
 - Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'connect_id' => int, 'synced_at' => int )`.
-  It is a cache of the dashboard's value. Only `save_from_dashboard()` can write it: a
-  `pre_update_option` filter refuses every other write, under any spelling of the name: MySQL's
-  `*_ci` collations ignore case and accents, so names are lower-cased and a non-ASCII name is
-  resolved to the row it actually hits. The same filter refuses any `instawp*` option that core's
-  `wp-admin/options.php` is itself writing, read from the `$options` list options.php builds and
-  loops over (never re-parsed from the request, which would differ from core's parsing), since a
-  refused admin could otherwise change the connect ID the list is bound to. A non-ASCII name is
-  judged by the `option_name` column's own collation (MySQL's `*_ci` collations ignore accents), so
-  an accented spelling of the list can neither be planted nor used.
-  Not covered: on multisite, `wp-admin/network/site-settings.php` lets a super admin write any
-  option of a sub-site; a super admin is outside what a per-site list can restrict. The plugin's own hooks may still write `instawp*` options during
-  an options.php request (e.g. the staging `blog_public` flag on Settings > Reading). WP-CLI is exempt so
-  `wp option` stays a recovery path. `instawp_save_management_settings` also
-  refuses the access options by name (case-insensitively, as MySQL matches option names).
+  It is a cache of the dashboard's value: the plugin's own UI never writes it, and the next
+  heartbeat overwrites any copy changed on the site. It is not protected against a site admin, who
+  can change the database directly anyway.
 - The list is bound to the connect it was saved under. If the site's connect ID changes (reconnected
   to another account, or a staging copy of a managed site), the cached list is ignored until that
   account's dashboard sends one.

@@ -743,12 +743,6 @@ class InstaWP_Ajax {
 			wp_send_json_error();
 		}
 
-		// Who may use Connect is set from the dashboard or the settings form, never written raw.
-		// Lower-cased: MySQL matches option_name case-insensitively.
-		if ( in_array( strtolower( $option_name ), array( InstaWP_Access_Control::OPTION, InstaWP_Access_Control::LEGACY_OPTION, InstaWP_Access_Control::REPORTED_OPTION ), true ) ) {
-			wp_send_json_error();
-		}
-
 		$result = Option::update_option( $option_name, $option_value );
 		if ( ! $result ) {
 			wp_send_json_error();

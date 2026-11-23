@@ -7,7 +7,7 @@
  * CACHE of the dashboard's value: nothing in wp-admin writes it, and every sync overwrites it.
  *
  * Until the dashboard has sent a list, the option does not exist and the site keeps the legacy
- * wp-admin blocklist (instawp_hide_plugin_to_users) exactly as before. Once a list has arrived the
+ * wp-admin blocklist (instawp_hide_plugin_to_users), now enforced on every Connect action. Once a list has arrived the
  * legacy blocklist is no longer read. A list that arrived once is kept when client-app cannot be
  * reached, so an outage never opens Connect to every admin.
  *
@@ -59,13 +59,6 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		const CONTEXT_CLI    = 'cli';
 
 		/**
-		 * True only while save_from_dashboard() writes the option; every other write is refused.
-		 *
-		 * @var bool
-		 */
-		private static $writing = false;
-
-		/**
 		 * True while an Action Scheduler action runs. Its async runner is an admin-ajax loopback that
 		 * carries the cookies of whoever's request dispatched it, so the "current user" there is an
 		 * accident of timing, not the person the job is for.
@@ -85,131 +78,12 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 
 		public function __construct() {
 			add_filter( 'http_request_args', array( $this, 'add_user_headers' ), 10, 2 );
-			add_filter( 'pre_update_option', array( $this, 'protect_options' ), 10, 3 );
 			add_action( self::REPORT_HOOK, array( $this, 'send_denial_report' ) );
 			add_action( 'action_scheduler_before_execute', array( $this, 'enter_background' ) );
 			add_action( 'action_scheduler_after_execute', array( $this, 'leave_background' ) );
 			add_action( 'action_scheduler_failed_execution', array( $this, 'leave_background' ) );
 			add_action( 'action_scheduler_execution_ignored', array( $this, 'leave_background' ) );
 			add_action( 'action_scheduler_failed_validation', array( $this, 'leave_background' ) );
-		}
-
-		/**
-		 * Keep the stored list unless save_from_dashboard() is writing it, and keep core's
-		 * wp-admin/options.php away from every instawp option: it writes any option an admin posts,
-		 * so a refused admin could otherwise switch access off, or change the connect id the list is
-		 * bound to. Nothing in this plugin saves through options.php. Names are compared lower-cased
-		 * because MySQL matches option_name case-insensitively while the per-option filter does not.
-		 * WP-CLI may write: `wp option delete|update` is the documented recovery.
-		 *
-		 * @param mixed  $value     New value.
-		 * @param string $option    Option name, as the caller spelled it.
-		 * @param mixed  $old_value Stored value.
-		 *
-		 * @return mixed
-		 */
-		public function protect_options( $value, $option, $old_value ) {
-			if ( self::$writing || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-				return $value;
-			}
-
-			$name = self::canonical_option_name( $option );
-
-			if ( self::OPTION === $name ) {
-				return $old_value;
-			}
-
-			if ( 0 === strpos( $name, 'instawp' ) && self::is_options_php_writing( $name ) ) {
-				return $old_value;
-			}
-
-			return $value;
-		}
-
-		/**
-		 * Whether core's wp-admin/options.php is itself writing this option in this request. Read from
-		 * the list options.php builds and loops over ($options: the posted page_options, or the saved
-		 * settings group's registered options), never re-parsed from the request: any difference in
-		 * parsing (sanitising, POST vs REQUEST, an empty option_page) is a way past the guard.
-		 * Only those names, never every write during the request: the plugin's own hooks write instawp
-		 * options while options.php runs (e.g. the staging blog_public flag on Settings > Reading).
-		 *
-		 * @param string $name Canonical option name (see canonical_option_name()).
-		 *
-		 * @return bool
-		 */
-		private static function is_options_php_writing( $name ) {
-			if ( ! isset( $GLOBALS['pagenow'] ) || 'options.php' !== $GLOBALS['pagenow'] ) {
-				return false;
-			}
-
-			// On a GET of options.php $options holds row objects; only the POST loop's names matter.
-			$names = isset( $GLOBALS['options'] ) && is_array( $GLOBALS['options'] ) ? $GLOBALS['options'] : array();
-			foreach ( $names as $candidate ) {
-				if ( is_string( $candidate ) && self::canonical_option_name( $candidate ) === $name ) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		/**
-		 * An option name as MySQL would match it, lower-cased. MySQL's *_ci collations ignore case and
-		 * accents (and some other differences), so a non-ASCII name is judged by the option_name
-		 * column's own collation: one equal to the list's name IS the list's name, and one that
-		 * collates as instawp* is ours. Decided by collation, not by a stored row, because a row
-		 * planted under an accented spelling would otherwise carry that spelling for good, and a name
-		 * with no row yet would not be recognised at all.
-		 *
-		 * @param string $option Option name as the caller spelled it.
-		 *
-		 * @return string
-		 */
-		private static function canonical_option_name( $option ) {
-			$option = trim( (string) $option );
-
-			if ( '' === $option || ! preg_match( '/[^\x20-\x7e]/', $option ) ) {
-				return strtolower( $option );
-			}
-
-			$collation = self::get_option_name_collation();
-			if ( '' !== $collation ) {
-				global $wpdb;
-				// $collation is a bare identifier (checked in get_option_name_collation()).
-				$suppress = $wpdb->suppress_errors( true ); // A connection charset the collation rejects falls back below.
-				$match    = $wpdb->get_row( $wpdb->prepare( "SELECT %s COLLATE {$collation} = %s AS is_list, %s COLLATE {$collation} LIKE 'instawp%%' AS is_ours", $option, self::OPTION, $option ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$wpdb->suppress_errors( $suppress );
-
-				if ( is_array( $match ) ) {
-					if ( ! empty( $match['is_list'] ) ) {
-						return self::OPTION;
-					}
-
-					if ( ! empty( $match['is_ours'] ) ) {
-						return 'instawp~' . strtolower( $option );
-					}
-				}
-			}
-
-			return strtolower( $option );
-		}
-
-		/**
-		 * The collation of wp_options.option_name, or '' where it cannot be read (not MySQL).
-		 *
-		 * @return string
-		 */
-		private static function get_option_name_collation() {
-			static $collation = null;
-
-			if ( null === $collation ) {
-				global $wpdb;
-				$column    = $wpdb->get_row( "SHOW FULL COLUMNS FROM {$wpdb->options} LIKE 'option_name'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$collation = is_array( $column ) && isset( $column['Collation'] ) && preg_match( '/^[A-Za-z0-9_]+$/', (string) $column['Collation'] ) ? (string) $column['Collation'] : '';
-			}
-
-			return $collation;
 		}
 
 		public function enter_background() {
@@ -411,12 +285,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 			);
 
 			// Autoloaded: read on every admin request (menu, admin bar).
-			self::$writing = true;
-			try {
-				update_option( self::OPTION, $state, true );
-			} finally {
-				self::$writing = false;
-			}
+			update_option( self::OPTION, $state, true );
 
 			return true;
 		}
