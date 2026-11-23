@@ -21,11 +21,12 @@ top of the list; the list only narrows them.
 
 - Option `instawp_access_control`: `array( 'mode' => string, 'users' => array( id => login ), 'connect_id' => int, 'synced_at' => int )`.
   It is a cache of the dashboard's value. Only `save_from_dashboard()` can write it: a
-  `pre_update_option` filter refuses every other write, under any spelling of the name (MySQL
-  matches `option_name` case-insensitively). The same filter refuses any `instawp*` option that
-  core's `wp-admin/options.php` is itself writing (the names posted in `page_options`, or those
-  registered for the settings group it saves), since a refused admin could otherwise change the
-  connect ID the list is bound to. The plugin's own hooks may still write `instawp*` options during
+  `pre_update_option` filter refuses every other write, under any spelling of the name: MySQL's
+  `*_ci` collations ignore case and accents, so names are lower-cased and a non-ASCII name is
+  resolved to the row it actually hits. The same filter refuses any `instawp*` option that core's
+  `wp-admin/options.php` is itself writing, read from the `$options` list options.php builds and
+  loops over (never re-parsed from the request, which would differ from core's parsing), since a
+  refused admin could otherwise change the connect ID the list is bound to. The plugin's own hooks may still write `instawp*` options during
   an options.php request (e.g. the staging `blog_public` flag on Settings > Reading). WP-CLI is exempt so
   `wp option` stays a recovery path. `instawp_save_management_settings` also
   refuses the access options by name (case-insensitively, as MySQL matches option names).
@@ -39,7 +40,9 @@ top of the list; the list only narrows them.
   before: a user on it is also refused on AJAX, the connect callback, the clear link and the
   plugin-row links. **Received once**: the legacy blocklist is no longer read, and the last
   copy stays in force if client-app cannot be reached.
-- A hard reset or disconnect does not delete it; uninstalling the plugin does. To clear it on a site
+- A hard reset or disconnect does not delete it; uninstalling the plugin does. On a disconnected
+  site the last list stays in force, so connecting it to another account (by the connect flow or an
+  application password) needs a user on that list, or `wp option delete instawp_access_control`. To clear it on a site
   that has lost its dashboard: `wp option delete instawp_access_control`.
 - A staging copy has its own connect ID, so it does not inherit the parent's list until the
   dashboard manages the staging connect too.

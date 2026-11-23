@@ -1348,8 +1348,17 @@ class InstaWP_Rest_Api {
 		}
 
 		// The dashboard's access list covers connecting too: an admin it refuses cannot use an
-		// application password to (re)connect the site or replace its keys.
+		// application password to (re)connect the site or replace its keys. Logged like the refusals
+		// above, because the caller is only told the credentials were refused.
 		if ( ! InstaWP_Access_Control::user_can_access( $wp_user->ID ) ) {
+			if ( false === get_transient( 'instawp_config_refused_access_list' ) ) {
+				set_transient( 'instawp_config_refused_access_list', 1, HOUR_IN_SECONDS );
+				Helper::add_error_log( array(
+					'message' => 'v1/config credentials refused',
+					'reason'  => 'access_list_refused',
+				) );
+			}
+
 			return $error;
 		}
 

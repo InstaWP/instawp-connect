@@ -113,7 +113,7 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				return $value;
 			}
 
-			$name = strtolower( trim( (string) $option ) );
+			$name = self::canonical_option_name( $option );
 
 			if ( self::OPTION === $name ) {
 				return $old_value;
@@ -127,12 +127,14 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		}
 
 		/**
-		 * Whether core's wp-admin/options.php is itself writing this option in this request: one of the
-		 * names it was posted (option_page=options), or one registered for the settings group it saves.
-		 * Only those, never every write during the request: the plugin's own hooks write instawp
+		 * Whether core's wp-admin/options.php is itself writing this option in this request. Read from
+		 * the list options.php builds and loops over ($options: the posted page_options, or the saved
+		 * settings group's registered options), never re-parsed from the request: any difference in
+		 * parsing (sanitising, POST vs REQUEST, an empty option_page) is a way past the guard.
+		 * Only those names, never every write during the request: the plugin's own hooks write instawp
 		 * options while options.php runs (e.g. the staging blog_public flag on Settings > Reading).
 		 *
-		 * @param string $name Lower-cased, trimmed option name.
+		 * @param string $name Canonical option name (see canonical_option_name()).
 		 *
 		 * @return bool
 		 */
@@ -141,17 +143,37 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				return false;
 			}
 
-			// phpcs:disable WordPress.Security.NonceVerification.Missing -- read only to recognise options.php's own writes; options.php verifies the nonce.
-			$page = isset( $_POST['option_page'] ) ? sanitize_text_field( wp_unslash( $_POST['option_page'] ) ) : 'options';
-
-			if ( 'options' === $page ) {
-				$names = isset( $_POST['page_options'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['page_options'] ) ) ) : array();
-			} else {
-				$names = isset( $GLOBALS['allowed_options'][ $page ] ) ? (array) $GLOBALS['allowed_options'][ $page ] : array();
+			// On a GET of options.php $options holds row objects; only the POST loop's names matter.
+			$names = isset( $GLOBALS['options'] ) && is_array( $GLOBALS['options'] ) ? $GLOBALS['options'] : array();
+			foreach ( $names as $candidate ) {
+				if ( is_string( $candidate ) && self::canonical_option_name( $candidate ) === $name ) {
+					return true;
+				}
 			}
-			// phpcs:enable
 
-			return in_array( $name, array_map( 'strtolower', array_map( 'trim', $names ) ), true );
+			return false;
+		}
+
+		/**
+		 * The name of the row an option name resolves to, lower-cased. MySQL's *_ci collations ignore
+		 * case and accents, so for a non-ASCII name the database decides which row it hits.
+		 *
+		 * @param string $option Option name as the caller spelled it.
+		 *
+		 * @return string
+		 */
+		private static function canonical_option_name( $option ) {
+			$option = trim( (string) $option );
+
+			if ( '' !== $option && preg_match( '/[^\x20-\x7e]/', $option ) ) {
+				global $wpdb;
+				$stored = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option ) );
+				if ( is_string( $stored ) && '' !== $stored ) {
+					$option = $stored;
+				}
+			}
+
+			return strtolower( $option );
 		}
 
 		public function enter_background() {
