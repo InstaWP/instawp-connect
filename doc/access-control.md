@@ -35,8 +35,7 @@ top of the list; the list only narrows them.
   copy stays in force if client-app cannot be reached.
 - A hard reset or disconnect does not delete it; uninstalling the plugin does. On a disconnected
   site the last list stays in force, so connecting it to another account (by the connect flow or an
-  application password) needs a user on that list, or `wp option delete instawp_access_control`. To clear it on a site
-  that has lost its dashboard: `wp option delete instawp_access_control`.
+  application password) needs a user on that list, or `wp option delete instawp_access_control`.
 - A staging copy has its own connect ID, so it does not inherit the parent's list until the
   dashboard manages the staging connect too.
 

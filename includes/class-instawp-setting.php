@@ -382,8 +382,8 @@ class InstaWP_Setting {
 				),
 				// Once the dashboard manages access, the wp-admin blocklist is replaced by a read-only
 				// summary: an editable list here is exactly what a new admin would use to let themselves in.
+				// No id: a display-only field, so nothing reads or saves an option for it.
 				InstaWP_Access_Control::is_managed() ? array(
-					'id'    => 'instawp_access_control_summary',
 					'type'  => 'summary',
 					'title' => esc_html__( 'Who can use InstaWP', 'instawp-connect' ),
 					'desc'  => InstaWP_Access_Control::get_summary_html(),

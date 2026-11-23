@@ -281,8 +281,16 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 				'mode'       => $mode,
 				'users'      => $sanitized,
 				'connect_id' => (int) instawp_get_connect_id(),
-				'synced_at'  => time(),
 			);
+
+			// Every heartbeat repeats the list: write only a change, so the autoloaded options are not
+			// rewritten each time. synced_at is when the list last changed.
+			$stored = Option::get_option( self::OPTION, false );
+			if ( is_array( $stored ) && isset( $stored['synced_at'] ) && array_diff_key( $stored, array( 'synced_at' => 0 ) ) === $state ) {
+				return true;
+			}
+
+			$state['synced_at'] = time();
 
 			// Autoloaded: read on every admin request (menu, admin bar).
 			update_option( self::OPTION, $state, true );
@@ -482,6 +490,11 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 
 			$context = self::get_request_context();
 			$user    = self::CONTEXT_USER === $context ? wp_get_current_user() : null;
+
+			// Headers given as a raw string are left alone rather than replaced and lost.
+			if ( isset( $args['headers'] ) && ! is_array( $args['headers'] ) && '' !== $args['headers'] ) {
+				return $args;
+			}
 
 			$args['headers']                            = isset( $args['headers'] ) && is_array( $args['headers'] ) ? $args['headers'] : array();
 			$args['headers'][ self::HEADER_CONTEXT ]    = $context;
