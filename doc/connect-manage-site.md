@@ -66,6 +66,7 @@ redirect adds `instawp-connect-failed=invalid` and the notice says the connect l
 | `/deactivate` | Deactivate plugins |
 | `/auto-update` | Configure auto-updates |
 | `/configuration` | Get/set site configuration |
+| `/access-control` | Get/set who can use InstaWP Connect (`GET`/`POST`). See [access-control.md](access-control.md) |
 | `/user` | Add a user (`POST`). `PUT`/`DELETE` are disabled: no caller was found, and they are pending removal |
 
 ## REST API Endpoints (v2/woocommerce)

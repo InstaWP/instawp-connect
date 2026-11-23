@@ -380,7 +380,14 @@ class InstaWP_Setting {
 					'default' => 'off',
 					'hide'    => defined( 'IWP_PLUGIN_TOPBAR_HIDE' ) && IWP_PLUGIN_TOPBAR_HIDE === true,
 				),
-				array(
+				// Once the dashboard manages access, the wp-admin blocklist is replaced by a read-only
+				// summary: an editable list here is exactly what a new admin would use to let themselves in.
+				// No id: a display-only field, so nothing reads or saves an option for it.
+				InstaWP_Access_Control::is_managed() ? array(
+					'type'  => 'summary',
+					'title' => esc_html__( 'Who can use InstaWP', 'instawp-connect' ),
+					'desc'  => InstaWP_Access_Control::get_summary_html(),
+				) : array(
 					'id'       => 'instawp_hide_plugin_to_users',
 					'type'     => 'select2',
 					'remote'   => true,

@@ -68,7 +68,7 @@ class InstaWP_Admin {
 	}
 
 	public function add_action_links( $links ) {
-		if ( defined( 'IWP_PLUGIN_NAME' ) ) {
+		if ( defined( 'IWP_PLUGIN_NAME' ) || ! InstaWP_Access_Control::user_can_access() ) {
 			return $links;
 		}
 
@@ -142,8 +142,7 @@ class InstaWP_Admin {
 			return;
 		}
 
-		$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-		if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+		if ( ! InstaWP_Access_Control::user_can_access() ) {
 			return;
 		}
 
