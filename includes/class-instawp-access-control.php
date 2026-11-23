@@ -155,8 +155,12 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		}
 
 		/**
-		 * The name of the row an option name resolves to, lower-cased. MySQL's *_ci collations ignore
-		 * case and accents, so for a non-ASCII name the database decides which row it hits.
+		 * An option name as MySQL would match it, lower-cased. MySQL's *_ci collations ignore case and
+		 * accents (and some other differences), so a non-ASCII name is judged by the option_name
+		 * column's own collation: one equal to the list's name IS the list's name, and one that
+		 * collates as instawp* is ours. Decided by collation, not by a stored row, because a row
+		 * planted under an accented spelling would otherwise carry that spelling for good, and a name
+		 * with no row yet would not be recognised at all.
 		 *
 		 * @param string $option Option name as the caller spelled it.
 		 *
@@ -165,15 +169,47 @@ if ( ! class_exists( 'InstaWP_Access_Control' ) ) {
 		private static function canonical_option_name( $option ) {
 			$option = trim( (string) $option );
 
-			if ( '' !== $option && preg_match( '/[^\x20-\x7e]/', $option ) ) {
+			if ( '' === $option || ! preg_match( '/[^\x20-\x7e]/', $option ) ) {
+				return strtolower( $option );
+			}
+
+			$collation = self::get_option_name_collation();
+			if ( '' !== $collation ) {
 				global $wpdb;
-				$stored = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option ) );
-				if ( is_string( $stored ) && '' !== $stored ) {
-					$option = $stored;
+				// $collation is a bare identifier (checked in get_option_name_collation()).
+				$suppress = $wpdb->suppress_errors( true ); // A connection charset the collation rejects falls back below.
+				$match    = $wpdb->get_row( $wpdb->prepare( "SELECT %s COLLATE {$collation} = %s AS is_list, %s COLLATE {$collation} LIKE 'instawp%%' AS is_ours", $option, self::OPTION, $option ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$wpdb->suppress_errors( $suppress );
+
+				if ( is_array( $match ) ) {
+					if ( ! empty( $match['is_list'] ) ) {
+						return self::OPTION;
+					}
+
+					if ( ! empty( $match['is_ours'] ) ) {
+						return 'instawp~' . strtolower( $option );
+					}
 				}
 			}
 
 			return strtolower( $option );
+		}
+
+		/**
+		 * The collation of wp_options.option_name, or '' where it cannot be read (not MySQL).
+		 *
+		 * @return string
+		 */
+		private static function get_option_name_collation() {
+			static $collation = null;
+
+			if ( null === $collation ) {
+				global $wpdb;
+				$column    = $wpdb->get_row( "SHOW FULL COLUMNS FROM {$wpdb->options} LIKE 'option_name'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$collation = is_array( $column ) && isset( $column['Collation'] ) && preg_match( '/^[A-Za-z0-9_]+$/', (string) $column['Collation'] ) ? (string) $column['Collation'] : '';
+			}
+
+			return $collation;
 		}
 
 		public function enter_background() {
