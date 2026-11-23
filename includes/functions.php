@@ -647,7 +647,7 @@ if ( ! function_exists( 'instawp_redeem_connect_code' ) ) {
 	 */
 	function instawp_redeem_connect_code( $code ) {
 		try {
-			if ( ! is_string( $code ) || ! preg_match( '/^[A-Za-z0-9]{48}$/', $code ) ) {
+			if ( ! is_string( $code ) || ! preg_match( INSTAWP_CONNECT_CODE_PATTERN, $code ) ) {
 				return array();
 			}
 
@@ -719,11 +719,14 @@ if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
 				return false;
 			}
 
-			if ( ! file_exists( $dir . '/index.php' ) ) {
-				@file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			}
-			if ( ! file_exists( $dir . '/.htaccess' ) ) {
-				@file_put_contents( $dir . '/.htaccess', "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			$protect = array(
+				'index.php' => "<?php\n// Silence is golden.\n",
+				'.htaccess' => "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+			);
+			foreach ( $protect as $name => $content ) {
+				if ( ! file_exists( $dir . '/' . $name ) && false === @file_put_contents( $dir . '/' . $name, $content ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					Helper::add_error_log( array( 'message' => 'Private debug log folder: could not create ' . $name ) );
+				}
 			}
 
 			return $file;
@@ -774,7 +777,10 @@ if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
 
 			// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
 			// otherwise the copy below creates a fresh private file this process can write.
-			if ( ! file_exists( $target ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
+			// An empty private file (for example a probe file that could not be removed) holds nothing, so the rename
+			// may replace it and the whole log is kept.
+			clearstatcache( true, $target );
+			if ( ( ! file_exists( $target ) || 0 === @filesize( $target ) ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
 				return true;
 			}
 

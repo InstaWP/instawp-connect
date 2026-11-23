@@ -2271,11 +2271,13 @@
                     }, 5000);
                 } else if ('debug_log' === el.data('type') && 'string' === typeof response.data.debug_log) {
                     // Shown as plain text in a new tab; the log has no public URL.
-                    let logUrl = URL.createObjectURL(new Blob([response.data.debug_log], {type: 'text/plain;charset=utf-8'}));
-                    window.open(logUrl, '_blank');
-                    setTimeout(function () {
-                        URL.revokeObjectURL(logUrl);
-                    }, 60000);
+                    // The previous log text is freed when a new one is opened, the last one when this page closes,
+                    // so the opened tab keeps working (reload included) for as long as this page is open.
+                    if (window.instawpDebugLogUrl) {
+                        URL.revokeObjectURL(window.instawpDebugLogUrl);
+                    }
+                    window.instawpDebugLogUrl = URL.createObjectURL(new Blob([response.data.debug_log], {type: 'text/plain;charset=utf-8'}));
+                    window.open(window.instawpDebugLogUrl, '_blank');
                 } else if (response.data.login_url) {
                     window.open(response.data.login_url, '_blank');
                 }

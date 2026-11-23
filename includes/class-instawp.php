@@ -99,19 +99,21 @@ class instaWP {
 
 		try {
 			$wp_config = new WPConfig( $params );
-			$wp_config->set();
+			$result    = $wp_config->set();
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( array( 'title' => 'instawp: toggle_wp_debug failed' ), $e );
 
 			return;
 		}
 
-		// Move the old log only once wp-config.php points at the private file, read back from the file: if
-		// WP_DEBUG_LOG was not written (a scoped define, an edit that did not match), PHP keeps writing
-		// debug.log and the history must stay where the viewer reads it. A define in a file wp-config.php
-		// includes is not seen by this check.
+		// Move the old log only once wp-config.php points at the private file: if WP_DEBUG_LOG was not written,
+		// PHP keeps writing debug.log and the history must stay where the viewer reads it. Two checks: what set()
+		// reports (a scoped define is skipped), then the value read back from the file, because set() cannot tell
+		// when an edit did not match. Locking wp-config.php would not help: the other tools that write it do not
+		// lock it. A define in a file wp-config.php includes is not seen by either check.
+		$skipped = is_array( $result ) && ! empty( $result['skipped'] ) && in_array( 'WP_DEBUG_LOG', (array) $result['skipped'], true );
 		try {
-			if ( is_string( $log_target ) && instawp_is_private_debug_log_path( $log_target ) ) {
+			if ( ! $skipped && is_string( $log_target ) && instawp_is_private_debug_log_path( $log_target ) ) {
 				$read = ( new WPConfig( array( 'WP_DEBUG_LOG' ), false, true ) )->get();
 				$now  = isset( $read['wp-config']['WP_DEBUG_LOG'] ) ? $read['wp-config']['WP_DEBUG_LOG'] : null;
 

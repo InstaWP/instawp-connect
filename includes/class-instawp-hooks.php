@@ -195,6 +195,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
 				$redirect = admin_url( 'tools.php?page=instawp' );
 				try {
+					// A code that does not have the shape of one was changed on the way here: say so, rather
+					// than the notice for a failed exchange.
+					if ( ! preg_match( INSTAWP_CONNECT_CODE_PATTERN, $code ) ) {
+						wp_safe_redirect( add_query_arg( 'instawp-connect-failed', 'invalid', $redirect ) );
+						exit();
+					}
+
 					$credentials = instawp_redeem_connect_code( $code );
 
 					if ( ! empty( $credentials ) ) {
@@ -702,7 +709,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( isset( $_GET['instawp-connect-failed'] ) && current_user_can( instawp_get_admin_capability() ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				?>
 				<div class="notice notice-error is-dismissible">
-					<p><?php esc_html_e( 'The site could not be connected to InstaWP. Please try connecting again.', 'instawp-connect' ); ?></p>
+					<?php if ( 'invalid' === $_GET['instawp-connect-failed'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+						<p><?php esc_html_e( 'This connect link is invalid. Please start connecting again.', 'instawp-connect' ); ?></p>
+					<?php else : ?>
+						<p><?php esc_html_e( 'The site could not be connected to InstaWP. Please try connecting again.', 'instawp-connect' ); ?></p>
+					<?php endif; ?>
 				</div>
 				<?php
 			}
