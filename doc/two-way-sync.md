@@ -86,3 +86,13 @@ file to sit inside the uploads directory, and it only serves the extensions in i
 3. Events can be reviewed before syncing
 4. Sync processes events and pushes/pulls changes
 5. Media files downloaded as needed
+
+## What the receiver accepts
+
+Events arrive from another connected site through the platform. The receiver applies them only within these rules:
+
+- **New users (`user_register`)**: the event carries the stored password hash in `details.user_pass_hash`. The receiver creates the user with a random password, then writes the hash and clears the user cache. WordPress 6.8+ writes `$wp$`-prefixed bcrypt hashes that earlier core versions cannot check: on such a receiver the hash is still written (it starts working once the site is upgraded), the case is logged, and the user needs a password reset until then. A receiver on an older plugin version ignores `user_pass_hash`, so the user needs a reset there too.
+- **Options**: `InstaWP_Sync_Option::is_protected_option()` is checked on capture. On receive (add, update, delete, and the customizer's option import, using the base name WordPress parses from the setting id), `InstaWP_Sync_Option::can_apply_received_option()` refuses a name that is not printable ASCII, that is protected (compared trimmed and lower-cased), or whose matching row in the options table is protected. The last check covers the database's loose name matching. Besides the core and plugin options already listed, the protected list covers `default_role`, `users_can_register`, `admin_email` and any option ending in `user_roles`.
+- **Serialized values** (options, post/term/user meta, mega-menu items) go through `InstaWP_Sync_Helpers::safe_unserialize()`. Arrays, scalars and `stdClass` are allowed. A value holding any other class is skipped and logged, never written.
+- **Media**: a file is written only if its extension is in WordPress's full mime list (`wp_get_mime_types()`, filterable via `mime_types`) or is SVG. The legacy fallback fetch of `path` (the source attachment URL) is used only when it is a valid http(s) URL.
+- **Sync messages** from the destination are stored with `sanitize_text_field()` and escaped on output. The Sync tab inserts error messages as text, not HTML.

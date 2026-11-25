@@ -24,6 +24,19 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function register_events() {
+			// Runs on init: a scheduling error must not break the request.
+			try {
+				$this->schedule_events();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'Heartbeat schedule check', $e );
+			}
+		}
+
+		private function schedule_events() {
+			if ( ! instawp_should_check_schedules() ) {
+				return;
+			}
+
 			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', array(), 'instawp-connect' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}
@@ -248,6 +261,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				if ( class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					InstaWP_CDN_Cache_Purge::save_cdn_flags_from_response( $heartbeat_response );
 				}
+
+				// The dashboard repeats the access list on every heartbeat, so a copy edited on the
+				// site itself is overwritten here.
+				InstaWP_Access_Control::save_from_response( $heartbeat_response );
 			} elseif ( ! empty( $response_data ) && isset( $response_data['remove_connect'] ) && true === $response_data['remove_connect'] ) {
 				// Remove connect.
 				instawp_reset_running_migration( 'hard' );

@@ -44,6 +44,12 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json',
 			'Referer'       => $site_url,
+			// The plugin is not loaded during uninstall, so its request filter never adds these. The
+			// site itself is disconnecting: without them client-app treats a managed connect's
+			// request as an outdated plugin and refuses it.
+			'X-InstaWP-Context'       => 'system',
+			'X-InstaWP-WP-User-Id'    => '0',
+			'X-InstaWP-WP-User-Login' => '',
 		),
 		'timeout'         => 60,
 		'redirection'     => 10,
@@ -60,7 +66,12 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 
 delete_option( 'instawp_api_options' );
 delete_option( 'instawp_large_files_list' );
+delete_option( 'instawp_access_control' );
+delete_option( 'instawp_access_denied_reported' );
 delete_option( 'instawp_large_files_cron_removed' );
+delete_option( 'instawp_retry_after' );
+delete_option( 'instawp_throwable_log_seen' );
+delete_option( 'instawp_activity_log_send_lock' );
 delete_option( 'instawp_backup_part_size' );
 delete_option( 'instawp_max_file_size_allowed' );
 delete_option( 'instawp_reset_type' );

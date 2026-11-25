@@ -204,29 +204,6 @@ class InstaWP_Rest_Api {
 		);
 	}
 
-	/**
-	 * Checks a plaintext application password against a hashed password.
-	 *
-	 * @since WordPress 6.8.0
-	 *
-	 * @param string $password Plaintext password.
-	 * @param string $hash     Hash of the password to check against.
-	 * @param int    $user_id User ID.
-	 * @return bool Whether the password matches the hashed password.
-	 */
-	public function check_password( $password, $hash, $user_id ) {
-		if ( ! str_starts_with( $hash, '$generic$' ) ) {
-			/*
-			 * If the hash doesn't start with `$generic$`, it is a hash created with `wp_hash_password()`.
-			 * This is the case for application passwords created before WordPress 6.8.0.
-			 */
-			return wp_check_password( $password, $hash, $user_id );
-		} elseif ( function_exists( 'wp_verify_fast_hash' ) ) {
-			return wp_verify_fast_hash( $password, $hash );
-		}
-
-		return false;
-	}
 
 	/**
 	 * Handle website config set.
@@ -253,7 +230,7 @@ class InstaWP_Rest_Api {
 					array(
 						'status'  => false,
 						'success' => false,
-						'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ),
+						'message' => esc_html__( 'Invalid username or application password, or the user is not an administrator.', 'instawp-connect' ),
 					)
 				);
 			}
@@ -317,21 +294,10 @@ class InstaWP_Rest_Api {
 
 			// If api_domain is passed then, set it
 			if ( ! empty( $api_domain ) ) {
-				$api_domain      = rtrim( $api_domain, '/' );
-				$allowed_domains = array(
-					'https://stage.instawp.io',
-					'https://dev.instawp.io',
-					'https://app.instawp.io',
-				);
-
-				// Allow development environments
-				for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) { 
-					$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
-				}
-
+				$api_domain    = rtrim( $api_domain, '/' );
 				$domain_to_set = defined( 'INSTAWP_API_DOMAIN' )
 					? INSTAWP_API_DOMAIN
-					: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
+					: ( instawp_is_allowed_api_domain( $api_domain ) ? $api_domain : '' );
 
 				if ( empty( $domain_to_set ) ) {
 					return $this->send_response(
@@ -400,14 +366,14 @@ class InstaWP_Rest_Api {
 				)
 			);
 		} catch ( \Throwable $th ) {
+			// The request carries credentials, so it is never echoed back.
+			Helper::add_error_log( array( 'message' => 'v1/config failed: ' . $th->getMessage() ) );
+
 			return $this->send_response(
 				array(
 					'status'  => false,
 					'success' => false,
-					'message' => $th->getMessage(),
-					'line'    => $th->getLine(),
-					'file'    => $th->getFile(),
-					'params'  => isset( $parameters ) ? $parameters : null,
+					'message' => esc_html__( 'Could not configure the site. Please try again.', 'instawp-connect' ),
 				)
 			);
 		}
@@ -495,7 +461,10 @@ class InstaWP_Rest_Api {
 		delete_option( 'instawp_sync_parent_connect_data' );
 		Option::update_option( 'instawp_sync_connect_id', $parent_connect_id );
 		Option::update_option( 'instawp_is_staging', true );
-		instawp_get_source_site_detail();
+
+		// Look the parent up on the next admin page load, not here: the platform records the link only after
+		// this request answers, so a lookup now finds no parent. Clear any wait so it is not delayed.
+		instawp_retry_later( 'source_site_detail', 0 );
 
 		return $this->send_response(
 			array(
@@ -737,7 +706,7 @@ class InstaWP_Rest_Api {
 
 		$user_metas = array(
 			'_instawp_temporary_login'            => 'yes',
-			'_instawp_temporary_login_token'      => $token,
+			'_instawp_temporary_login_token'      => hash( 'sha256', $token ), // The link carries the token; only its hash is stored.
 			'_instawp_temporary_login_expiration' => $expiry_time,
 			'_instawp_temporary_login_attempt'    => $param_reuse,
 		);
@@ -1322,36 +1291,78 @@ class InstaWP_Rest_Api {
 	 * @return true|WP_Error
 	 */
 	protected function validate_config_credentials( $parameters ) {
+		// The REST access gate and set_config() both check the same request: check it once, so a
+		// failed attempt is reported to security plugins only once. The cache lives for the PHP
+		// process, i.e. one HTTP request; a long-running process (tests, WP-CLI) would keep the
+		// first result for the same username and password.
+		static $results = array();
+
+		$cache_key = md5( wp_json_encode( array( isset( $parameters['wp_username'] ) ? $parameters['wp_username'] : '', isset( $parameters['application_password'] ) ? $parameters['application_password'] : '' ) ) );
+		if ( ! isset( $results[ $cache_key ] ) ) {
+			$results[ $cache_key ] = $this->check_config_credentials( $parameters );
+		}
+
+		return $results[ $cache_key ];
+	}
+
+	/**
+	 * @param array $parameters Request parameters.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function check_config_credentials( $parameters ) {
 		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
 
 		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-		$application_password = str_replace( ' ', '', $application_password );
 		$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-		$wp_user              = get_user_by( 'login', $wp_username );
 
-		// Check if WP_User is valid or not
-		if ( ! $wp_user instanceof WP_User ) {
-			return new WP_Error( 403, esc_html__( 'No user found with the provided username.', 'instawp-connect' ) );
+		// One message for every failure, so the response does not tell which usernames exist or
+		// which of them are administrators.
+		$error = new WP_Error( 403, esc_html__( 'Invalid username or application password, or the user is not an administrator.', 'instawp-connect' ) );
+
+		if ( ! is_string( $wp_username ) || '' === $wp_username || ! is_string( $application_password ) || '' === $application_password ) {
+			return $error;
 		}
 
-		// Check if the user is an administrator or not
-		if ( ! user_can( $wp_user, 'manage_options' ) ) {
-			return new WP_Error( 403, esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ) );
-		}
+		// Core's own check: it supports every application password hash format, honours sites
+		// where application passwords are switched off, and reports failures to security plugins.
+		$wp_user = wp_authenticate_application_password( null, $wp_username, $application_password );
 
-		$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
-		$application_passwords = ! is_array( $application_passwords ) ? array() : $application_passwords;
+		if ( ! $wp_user instanceof WP_User || ! user_can( $wp_user, 'manage_options' ) ) {
+			// Keep the real reason for support; the caller only ever sees the generic message.
+			// Anyone can trigger most reasons without valid credentials, so each one is logged at
+			// most once an hour and cannot crowd other entries out of the short error log.
+			$reason   = is_wp_error( $wp_user ) ? $wp_user->get_error_code() : ( $wp_user instanceof WP_User ? 'not_administrator' : 'not_authenticated' );
+			$throttle = 'instawp_config_refused_' . substr( sanitize_key( $reason ), 0, 64 );
 
-		foreach ( $application_passwords as $password_data ) {
-			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
-
-			if ( $this->check_password( $application_password, $password, $wp_user->ID ) ) {
-				return true;
+			if ( false === get_transient( $throttle ) ) {
+				set_transient( $throttle, 1, HOUR_IN_SECONDS );
+				Helper::add_error_log( array(
+					'message' => 'v1/config credentials refused',
+					'reason'  => $reason,
+				) );
 			}
+
+			return $error;
 		}
 
-		return new WP_Error( 403, esc_html__( 'Application password does not match.', 'instawp-connect' ) );
+		// The dashboard's access list covers connecting too: an admin it refuses cannot use an
+		// application password to (re)connect the site or replace its keys. Logged like the refusals
+		// above, because the caller is only told the credentials were refused.
+		if ( ! InstaWP_Access_Control::user_can_access( $wp_user->ID ) ) {
+			if ( false === get_transient( 'instawp_config_refused_access_list' ) ) {
+				set_transient( 'instawp_config_refused_access_list', 1, HOUR_IN_SECONDS );
+				Helper::add_error_log( array(
+					'message' => 'v1/config credentials refused',
+					'reason'  => 'access_list_refused',
+				) );
+			}
+
+			return $error;
+		}
+
+		return true;
 	}
 
 	/**

@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.1.4.5
+Stable tag: 0.1.4.6
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,18 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.4.6 - 25 November 2026 =
+- Added: Choose from your InstaWP dashboard who can see and use InstaWP Connect on each site: every administrator, only selected users, or everyone except selected users. New admins follow your choice automatically.
+- Improved: The "Hide InstaWP Menu to Users" setting now covers all InstaWP Connect actions as well as the menu.
+- Security: Stronger access checks for admin tools, settings, login links and the database manager, with network-admin access for InstaWP tools on multisite.
+- Security: Stronger user, option, meta and media handling in two-way sync.
+- Improved: Full PHP 8 support for the WooCommerce REST endpoints.
+- Improved: Faster page loads for visitors and admins: activity logs and other background work now run in the background.
+- Improved: The activity log records events for posts, users and plugins with long names, and shows names as plain text.
+- Improved: The activity log shows each user's role accurately.
+- Improved: Faster staging site list refresh.
+- Improved: A leaner plugin, with unused code and API methods cleaned up.
 
 = 0.1.4.5 - 16 November 2026 =
 - Security: Hardened a database query in two-way sync.

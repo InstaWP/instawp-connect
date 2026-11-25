@@ -226,7 +226,8 @@ class InstaWP_Sync_Parser {
 } else {
 					
 					$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-					if ( $image_data === false ) {
+					// path is the attachment URL on the source site. Only ever fetch it as a URL.
+					if ( $image_data === false && ! empty( $data['path'] ) && false !== wp_http_validate_url( $data['path'] ) ) {
 						$image_data = file_get_contents( $data['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 					}
 				}
@@ -243,6 +244,17 @@ class InstaWP_Sync_Parser {
 				$upload_dir = wp_upload_dir();
 				$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
 				$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
+
+				// Only write known media types: WordPress's full mime list (not the per-user upload list,
+				// since sync runs with no current user) plus SVG, which many sites add through a plugin.
+				$known_mimes = array_merge( wp_get_mime_types(), array( 'svg|svgz' => 'image/svg+xml' ) );
+				unset( $known_mimes['exe'], $known_mimes['swf'] ); // Core refuses these for every user.
+				$file_type = wp_check_filetype( $file_name, $known_mimes );
+				if ( empty( $file_type['ext'] ) ) {
+					// Not $failed_message: that marker puts the event on the upload-mode retry list.
+					InstaWP_Sync_Helpers::get_set_sync_parser_log( 'Error: file type not allowed ' . $image_url, true );
+					return $attachment_id;
+				}
 
 				file_put_contents( $save_path, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
@@ -412,7 +424,11 @@ class InstaWP_Sync_Parser {
 			if ( '_elementor_data' === $meta_key ) {
 				$value = wp_slash( $value );
 			} else {
-				$value = maybe_unserialize( $value );
+				$value = InstaWP_Sync_Helpers::safe_unserialize( $value );
+				if ( is_wp_error( $value ) ) {
+					Helper::add_error_log( array( 'message' => 'Sync: post meta skipped, ' . $value->get_error_message(), 'meta_key' => $meta_key ) );
+					continue;
+				}
 			}
 
 			update_metadata( 'post', $post_id, $meta_key, $value );

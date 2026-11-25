@@ -209,6 +209,44 @@ if ( ! function_exists( 'instawp_create_api_connect' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_get_admin_capability' ) ) {
+	/**
+	 * Capability required for InstaWP's admin tools (staging, migration, database manager,
+	 * settings). On multisite these act on the whole network (one database, one wp-config),
+	 * so they need a super admin rather than a site administrator.
+	 *
+	 * @return string
+	 */
+	function instawp_get_admin_capability() {
+		return is_multisite() ? 'manage_network_options' : 'manage_options';
+	}
+}
+
+if ( ! function_exists( 'instawp_is_allowed_api_domain' ) ) {
+	/**
+	 * Whether a URL is one of InstaWP's own app domains, which are the only ones the plugin may
+	 * send its API key to. The INSTAWP_API_DOMAIN constant is handled by the callers.
+	 *
+	 * @param string $api_domain Domain URL, e.g. https://app.instawp.io.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_allowed_api_domain( $api_domain ) {
+		$allowed_domains = array(
+			'https://stage.instawp.io',
+			'https://dev.instawp.io',
+			'https://app.instawp.io',
+		);
+
+		// Development environments.
+		for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) {
+			$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
+		}
+
+		return in_array( rtrim( (string) $api_domain, '/' ), $allowed_domains, true );
+	}
+}
+
 if ( ! function_exists( 'instawp_is_admin' ) ) {
 	/**
 	 * Check if user is admin
@@ -496,6 +534,79 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 	}
 }
 
+
+if ( ! function_exists( 'instawp_log_throwable' ) ) {
+	/**
+	 * Record an error caught by a guard that keeps background work (scheduling, API calls, cleanup)
+	 * from breaking the request it runs in. Never throws itself.
+	 *
+	 * @param string     $where What was running.
+	 * @param \Throwable $e     The caught error.
+	 *
+	 * @return void
+	 */
+	function instawp_log_throwable( $where, $e ) {
+		static $logged = array();
+
+		try {
+			// The error log keeps only its last few entries, and a failure that repeats on every request would
+			// push everything else out. Log each distinct error at most once an hour (one option holding
+			// array( key => expiry ), expired keys pruned), and once per process.
+			$key = md5( $where . '|' . $e->getMessage() );
+			if ( isset( $logged[ $key ] ) ) {
+				return;
+			}
+			$logged[ $key ] = true;
+
+			$now  = time();
+			$seen = Option::get_option( 'instawp_throwable_log_seen', array() );
+			$seen = is_array( $seen ) ? $seen : array();
+			if ( isset( $seen[ $key ] ) && (int) $seen[ $key ] > $now ) {
+				return;
+			}
+			Helper::add_error_log( array(
+				'message' => $where . ' failed',
+				'error'   => $e->getMessage(),
+				'where'   => basename( $e->getFile() ) . ':' . $e->getLine(),
+			) );
+
+			// Recorded after the entry is written, so a failure here can never hide the error itself.
+			foreach ( $seen as $seen_key => $expiry ) {
+				if ( (int) $expiry <= $now ) {
+					unset( $seen[ $seen_key ] );
+				}
+			}
+			$seen[ $key ] = $now + HOUR_IN_SECONDS;
+			if ( count( $seen ) > 100 ) {
+				// Messages that differ on every request would otherwise keep adding keys for an hour.
+				asort( $seen );
+				$seen = array_slice( $seen, -100, null, true );
+			}
+			Option::update_option( 'instawp_throwable_log_seen', $seen );
+		} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			// Logging must not break the request either.
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_should_check_schedules' ) ) {
+	/**
+	 * Whether this request should make sure the plugin's recurring jobs are scheduled.
+	 *
+	 * The check is a database query per job, so it is skipped for visitors' page views, AJAX and
+	 * Heartbeat. wp-admin page loads and cron runs are enough to re-create a missing job: WP-Cron runs
+	 * as its own request, so even a site nobody logs into gets its jobs back within minutes.
+	 *
+	 * @return bool
+	 */
+	function instawp_should_check_schedules() {
+		if ( wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+			return true;
+		}
+
+		return is_admin() && ! wp_doing_ajax();
+	}
+}
 
 if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	/**
@@ -848,19 +959,100 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
-	function instawp_get_source_site_detail() {
+if ( ! function_exists( 'instawp_is_admin_page_load' ) ) {
+	/**
+	 * Whether this is a normal wp-admin page load by an administrator.
+	 *
+	 * admin_init also fires for admin-ajax.php (Heartbeat every 15-60 seconds per open tab, other
+	 * plugins' AJAX, and logged-out visitors' AJAX) and for admin-post.php, so work hooked on it that
+	 * calls the InstaWP API must check this first.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_admin_page_load() {
+		global $pagenow;
 
-		if ( ! empty( $_GET['instawp_debug'] ) ) {
-			wp_send_json_success(
-				array(
-					'fetch_parent' => true,
-					'is_staging'   => instawp()->is_staging,
-				)
-			);
+		if ( wp_doing_ajax() || 'admin-post.php' === $pagenow ) {
+			return false;
 		}
 
-		if ( ! instawp()->is_staging ) {
+		return current_user_can( instawp_get_admin_capability() );
+	}
+}
+
+if ( ! function_exists( 'instawp_retry_is_waiting' ) ) {
+	/**
+	 * Whether a retry wait set by instawp_retry_later() is still running.
+	 *
+	 * All waits live in one option, array( $key => expiry timestamp ).
+	 *
+	 * @param string $key Retry key.
+	 *
+	 * @return bool
+	 */
+	function instawp_retry_is_waiting( $key ) {
+		$waits = Option::get_option( 'instawp_retry_after', array() );
+
+		return is_array( $waits ) && isset( $waits[ $key ] ) && (int) $waits[ $key ] > time();
+	}
+}
+
+if ( ! function_exists( 'instawp_retry_later' ) ) {
+	/**
+	 * Wait before trying $key again, or clear the wait with a $seconds of 0. Expired waits are pruned.
+	 *
+	 * @param string $key     Retry key.
+	 * @param int    $seconds Seconds to wait; 0 clears the wait.
+	 *
+	 * @return void
+	 */
+	function instawp_retry_later( $key, $seconds ) {
+		$waits = Option::get_option( 'instawp_retry_after', array() );
+		$waits = is_array( $waits ) ? $waits : array();
+		$now   = time();
+
+		foreach ( $waits as $wait_key => $expiry ) {
+			if ( (int) $expiry <= $now ) {
+				unset( $waits[ $wait_key ] );
+			}
+		}
+
+		if ( $seconds > 0 ) {
+			$waits[ $key ] = $now + (int) $seconds;
+		} else {
+			unset( $waits[ $key ] );
+		}
+
+		if ( empty( $waits ) ) {
+			Option::delete_option( 'instawp_retry_after' );
+		} else {
+			Option::update_option( 'instawp_retry_after', $waits );
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
+	/**
+	 * On a staging site, look up and store its parent site's details.
+	 *
+	 * Hooked on admin_init, it runs only on wp-admin page loads by an administrator, and after a lookup
+	 * that failed or found nothing it waits an hour: before, a staging site whose parent could not be
+	 * found called the API on every admin_init, including each Heartbeat tick and logged-out AJAX.
+	 *
+	 * @param bool $force Look up now, ignoring the request type and the wait. Used by WP-CLI right after the
+	 *                    site is marked as staging, when instawp()->is_staging still holds the value read
+	 *                    before the flag was set.
+	 *
+	 * @return void
+	 */
+	function instawp_get_source_site_detail( $force = false ) {
+		if ( true === $force ) {
+			$is_staging = (bool) Option::get_option( 'instawp_is_staging', false );
+		} else {
+			$is_staging = instawp()->is_staging && instawp_is_admin_page_load();
+		}
+
+		if ( ! $is_staging ) {
 			return;
 		}
 
@@ -868,18 +1060,30 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			return;
 		}
 
-		$connect_id  = instawp_get_connect_id();
-		$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
+		if ( true !== $force && instawp_retry_is_waiting( 'source_site_detail' ) ) {
+			return;
+		}
 
-		Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
+		// Runs on admin page loads: an error here must not break the page.
+		try {
+			$connect_id  = instawp_get_connect_id();
+			$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
 
-		if ( ! empty( $_GET['instawp_debug'] ) ) {
-			wp_send_json_success(
-				array(
-					'connect_id'  => $connect_id,
-					'parent_data' => $parent_data,
-				)
-			);
+			Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
+			instawp_retry_later( 'source_site_detail', empty( $parent_data ) ? HOUR_IN_SECONDS : 0 );
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Staging parent lookup', $e );
+
+			try {
+				instawp_retry_later( 'source_site_detail', HOUR_IN_SECONDS );
+			} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+				// The wait is only an optimisation.
+			}
+
+			// A forced lookup comes from WP-CLI (staging-set): say it failed rather than exit silently.
+			if ( true === $force && defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
+				WP_CLI::warning( 'Staging parent lookup failed: ' . $e->getMessage() );
+			}
 		}
 	}
 }
@@ -895,9 +1099,21 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 	 */
 	function instawp_get_connect_detail_by_connect_id( $connect_id ) {
 		// connects/<connect_id>
+		// The endpoint returns every connected site at once, so instawp_set_staging_sites_list() used to
+		// download the same response once per staging site. Reuse a successful one for this request.
+		static $connected_sites = array();
+
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
-		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), 'GET' );
+
+		if ( isset( $connected_sites[ $site_connect_id ] ) ) {
+			$api_response = $connected_sites[ $site_connect_id ];
+		} else {
+			$api_response = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), 'GET' );
+			if ( ! empty( $api_response['success'] ) ) {
+				$connected_sites[ $site_connect_id ] = $api_response;
+			}
+		}
 
 		if ( $api_response['success'] ) {
 			$api_response = Helper::get_args_option( 'data', $api_response, array() );
@@ -1080,10 +1296,23 @@ if ( ! function_exists( 'instawp_get_user_by_token' ) ) {
 	 * @return \WP_User|null
 	 */
 	function instawp_get_user_by_token( $token ) {
+		if ( ! is_string( $token ) || '' === $token ) {
+			return null;
+		}
+
+		// Tokens are stored as their sha256. A link created before that change still has its
+		// 120-character token stored as-is, so a token of that length is also matched as-is until
+		// it expires. A stored hash (64 characters) is never accepted as a token itself.
+		$candidates = array( hash( 'sha256', $token ) );
+		if ( 120 === strlen( $token ) ) {
+			$candidates[] = $token;
+		}
+
 		$users = get_users(
 			array(
-				'meta_key'   => '_instawp_temporary_login_token',
-				'meta_value' => $token,
+				'meta_key'     => '_instawp_temporary_login_token',
+				'meta_value'   => $candidates,
+				'meta_compare' => 'IN',
 			)
 		);
 
@@ -1121,15 +1350,33 @@ if ( ! function_exists( 'instawp_is_user_attempt_expired' ) ) {
 
 if ( ! function_exists( 'instawp_reduce_login_attempt' ) ) {
 	function instawp_reduce_login_attempt( $user_id ) {
-		$attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+		global $wpdb;
 
-		if ( empty( $attempt ) ) {
+		$meta_key = '_instawp_temporary_login_attempt';
+		$current  = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare( "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1", $user_id, $meta_key )
+		);
+
+		if ( null === $current || ! is_numeric( $current ) || (int) $current <= 0 ) {
 			return false;
 		}
 
-		--$attempt;
+		// Compare-and-swap: the row only changes if it still holds the value just read, so two
+		// simultaneous requests cannot both use the last attempt. (No CAST in the WHERE clause:
+		// strict SQL mode errors on it for non-numeric values.)
+		$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"UPDATE {$wpdb->usermeta} SET meta_value = %s WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
+				(string) ( (int) $current - 1 ),
+				$user_id,
+				$meta_key,
+				$current
+			)
+		);
 
-		return update_user_meta( $user_id, '_instawp_temporary_login_attempt', $attempt );
+		wp_cache_delete( $user_id, 'user_meta' );
+
+		return 1 === (int) $updated;
 	}
 }
 

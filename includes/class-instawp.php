@@ -105,8 +105,12 @@ class instaWP {
 	public function register_actions() {
 		$this->unschedule_large_files_list();
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
+		try {
+			if ( instawp_should_check_schedules() && ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
+			}
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Migrate-file cleanup schedule check', $e );
 		}
 	}
 
@@ -454,12 +458,12 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-staging-v4.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-setting.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-access-control.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-database-management.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-whitelabel.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-cli.php';
-		// require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-updates.php';
 		// require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-checksum.php';
 
 		if ( ! defined( 'IWP_PLUGIN_DISABLE_HEARTBEAT' ) || IWP_PLUGIN_DISABLE_HEARTBEAT !== true ) {

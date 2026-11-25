@@ -28,7 +28,7 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				),
 			);
 
-			if ( isset( $_REQUEST['internal'] ) && 1 === intval( $_REQUEST['internal'] ) ) {
+			if ( isset( $_REQUEST['internal'] ) && 1 === intval( $_REQUEST['internal'] ) && instawp_is_admin( instawp_get_admin_capability() ) ) {
 				$menu_items['settings'] = array(
 					'label' => __( 'Settings', 'instawp-connect' ),
 					'icon'  => '<svg width="20" class="mr-2" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M9.34035 1.8539C8.99923 0.448767 7.00087 0.448766 6.65975 1.8539C6.43939 2.76159 5.39945 3.19235 4.6018 2.70633C3.36701 1.95396 1.95396 3.36701 2.70633 4.6018C3.19235 5.39945 2.76159 6.43939 1.8539 6.65975C0.448766 7.00087 0.448767 8.99923 1.8539 9.34035C2.76159 9.56071 3.19235 10.6006 2.70633 11.3983C1.95396 12.6331 3.36701 14.0461 4.6018 13.2938C5.39945 12.8077 6.43939 13.2385 6.65975 14.1462C7.00087 15.5513 8.99923 15.5513 9.34035 14.1462C9.56071 13.2385 10.6006 12.8077 11.3983 13.2938C12.6331 14.0461 14.0461 12.6331 13.2938 11.3983C12.8077 10.6006 13.2385 9.56071 14.1462 9.34035C15.5513 8.99923 15.5513 7.00087 14.1462 6.65975C13.2385 6.43939 12.8077 5.39945 13.2938 4.6018C14.0461 3.36701 12.6331 1.95396 11.3983 2.70633C10.6006 3.19235 9.56071 2.76159 9.34035 1.8539ZM8.00005 10.7C9.49122 10.7 10.7 9.49122 10.7 8.00005C10.7 6.50888 9.49122 5.30005 8.00005 5.30005C6.50888 5.30005 5.30005 6.50888 5.30005 8.00005C5.30005 9.49122 6.50888 10.7 8.00005 10.7Z"/> </svg>',
@@ -39,7 +39,24 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 		}
 
 		public function disconnect_whitelabel_site() {
-			if ( ! instawp_is_connect_whitelabelled() ) {
+			// Runs on admin_init: an error here (a malformed plan date, an API failure) must not break wp-admin.
+			try {
+				$this->maybe_disconnect_whitelabel_site();
+			} catch ( \Throwable $e ) {
+				instawp_log_throwable( 'White-label trial disconnect', $e );
+
+				// Try again in an hour, not on every admin page load (e.g. a malformed plan date fails every time).
+				try {
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
+				} catch ( \Throwable $ignored ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// The wait is only an optimisation.
+				}
+			}
+		}
+
+		private function maybe_disconnect_whitelabel_site() {
+			// admin_init also fires for AJAX, Heartbeat and logged-out requests; only an admin's page load does this.
+			if ( ! instawp_is_connect_whitelabelled() || ! instawp_is_admin_page_load() ) {
 				return;
 			}
 
@@ -66,6 +83,12 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				return;
 			}
 
+			// After a failed attempt (an API failure, or an error caught by disconnect_whitelabel_site() such as a
+			// malformed plan date) try again in an hour, not on the next admin request.
+			if ( instawp_retry_is_waiting( 'whitelabel_disconnect' ) ) {
+				return;
+			}
+
 			$plan_activated_date = new DateTime( $connect_plan['plan_timestamp'] );
 			$today_date          = new DateTime( current_time( 'mysql' ) );
 			$diff                = $today_date->diff( $plan_activated_date );
@@ -76,8 +99,10 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 
 				if ( empty( $api_response['success'] ) ) {
 					error_log( 'Error disconnecting site: ' . $api_response['message'] );
+					instawp_retry_later( 'whitelabel_disconnect', HOUR_IN_SECONDS );
 				} else {
 					Helper::set_connect_plan_id( 0 );
+					instawp_retry_later( 'whitelabel_disconnect', 0 );
 				}
 			}
 		}

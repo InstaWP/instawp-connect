@@ -19,8 +19,12 @@ if ( ! function_exists( 'adminer_object' ) ) {
                 return DB_NAME;
             }
         
+            // The password is the per-session one set by the auto-login page, never the real
+            // database password (that is only used server-side, in credentials()).
             function login( $login, $password ) {
-                return ( $login === DB_USER && $password === DB_PASSWORD );
+                $stored = get_transient( \InstaWP\Connect\Helpers\DatabaseManager::$password_key );
+
+                return $login === DB_USER && is_string( $stored ) && '' !== $stored && hash_equals( $stored, hash( 'sha256', (string) $password ) );
             }
 
             function head( $dark = null ) {

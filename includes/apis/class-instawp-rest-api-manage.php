@@ -26,6 +26,19 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/access-control', array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_access_control' ),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'set_access_control' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/cdn', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'set_cdn_state' ),
@@ -105,16 +118,23 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 				'callback'            => array( $this, 'add_user' ),
 				'permission_callback' => '__return_true',
 			),
-			array(
-				'methods'             => 'PUT',
-				'callback'            => array( $this, 'update_user' ),
-				'permission_callback' => '__return_true',
-			),
-			array(
-				'methods'             => 'DELETE',
-				'callback'            => array( $this, 'delete_user' ),
-				'permission_callback' => '__return_true',
-			),
+			/*
+			 * PUT (update_user) and DELETE (delete_user) are disabled: no caller was found. The
+			 * dashboard only sends POST to this route, and the platform's user tools go through
+			 * WP-CLI. Remove both methods and their callbacks once a release confirms nothing
+			 * depended on them.
+			 *
+			 * array(
+			 *     'methods'             => 'PUT',
+			 *     'callback'            => array( $this, 'update_user' ),
+			 *     'permission_callback' => '__return_true',
+			 * ),
+			 * array(
+			 *     'methods'             => 'DELETE',
+			 *     'callback'            => array( $this, 'delete_user' ),
+			 *     'permission_callback' => '__return_true',
+			 * ),
+			 */
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/database-manager', array(
@@ -237,6 +257,57 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'success' => true,
 			'message' => __( 'CDN state saved.', 'instawp-connect' ),
 		) );
+	}
+
+	/**
+	 * Return who may use InstaWP Connect, plus the legacy wp-admin blocklist for the dashboard's
+	 * one-time import. A site that answers this route supports dashboard-managed access control.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_access_control( WP_REST_Request $request ) {
+
+		// No remote-management toggle on purpose, as for /cdn: the dashboard must always be able
+		// to read and correct who may use Connect.
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		return $this->send_response( array_merge( array( 'success' => true ), InstaWP_Access_Control::get_report() ) );
+	}
+
+	/**
+	 * Save who may use InstaWP Connect, as set on the dashboard.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_access_control( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$result = InstaWP_Access_Control::save_from_dashboard(
+			array(
+				'mode'  => $request->get_param( 'mode' ),
+				'users' => $request->get_param( 'users' ),
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => $result->get_error_message(),
+			) );
+		}
+
+		return $this->send_response( array_merge( array( 'success' => true ), InstaWP_Access_Control::get_report() ) );
 	}
 
 	/**
@@ -423,9 +494,20 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		if ( ! empty( $wp_config ) ) {
 			try {
+				// Only the values these two constants accept: a boolean, and for core updates also
+				// one of WordPress's update channels.
+				$updater_disabled = isset( $wp_config['updater_disabled'] ) && is_scalar( $wp_config['updater_disabled'] ) ? rest_sanitize_boolean( $wp_config['updater_disabled'] ) : false;
+				$auto_update_core = isset( $wp_config['auto_update_core'] ) ? $wp_config['auto_update_core'] : false;
+
+				if ( is_bool( $auto_update_core ) || in_array( $auto_update_core, array( 'true', 'false', '1', '0', 1, 0 ), true ) ) {
+					$auto_update_core = rest_sanitize_boolean( $auto_update_core );
+				} elseif ( ! in_array( $auto_update_core, array( 'minor', 'beta', 'rc', 'development', 'branch-development' ), true ) ) {
+					throw new \Exception( esc_html__( 'Invalid auto update value.', 'instawp-connect' ) );
+				}
+
 				$wp_config             = new Helpers\WPConfig( array(
-					'AUTOMATIC_UPDATER_DISABLED' => ! empty( $wp_config['updater_disabled'] ) ? $wp_config['updater_disabled'] : false,
-					'WP_AUTO_UPDATE_CORE'        => ! empty( $wp_config['auto_update_core'] ) ? $wp_config['auto_update_core'] : false,
+					'AUTOMATIC_UPDATER_DISABLED' => $updater_disabled,
+					'WP_AUTO_UPDATE_CORE'        => $auto_update_core,
 				) );
 				$response['wp-config'] = $wp_config->set();
 

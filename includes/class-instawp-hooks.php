@@ -170,7 +170,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function generate_api_key() {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				return;
 			}
 
@@ -180,6 +180,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				// Checked here rather than first so that only a real connect attempt is reported.
+				if ( ! InstaWP_Access_Control::user_can_access() ) {
+					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
+					return;
+				}
+				InstaWP_Access_Control::mark_acting_for_user();
+
 				$api_key = Helper::get_api_key();
 
 				if ( empty( $api_key ) || $api_key !== $access_token ) {
@@ -228,6 +235,51 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			exit();
 		}
 
+		/**
+		 * The page a temporary-login link opens: the site name and one "Log in" button that
+		 * POSTs back to the same URL. It names no user and loads nothing external.
+		 */
+		private function render_temporary_login_page() {
+			if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+				define( 'DONOTCACHEPAGE', true );
+			}
+
+			nocache_headers();
+			header( 'X-Frame-Options: DENY' );
+			header( "Content-Security-Policy: frame-ancestors 'none'" );
+			header( 'Referrer-Policy: no-referrer' );
+			header( 'X-Robots-Tag: noindex, nofollow' );
+			header( 'Content-Type: text/html; charset=' . get_option( 'blog_charset' ) );
+
+			$site_name = get_bloginfo( 'name' );
+			?>
+			<!DOCTYPE html>
+			<html <?php language_attributes(); ?>>
+			<head>
+				<meta charset="<?php echo esc_attr( get_option( 'blog_charset' ) ); ?>">
+				<meta name="viewport" content="width=device-width, initial-scale=1">
+				<meta name="robots" content="noindex, nofollow">
+				<title><?php echo esc_html( $site_name ); ?></title>
+				<style>
+					body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2327}
+					.box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:32px;max-width:360px;width:calc(100% - 32px);text-align:center;box-sizing:border-box}
+					h1{font-size:20px;margin:0 0 20px}
+					button{background:#005e54;color:#fff;border:0;border-radius:6px;padding:12px 24px;font-size:15px;cursor:pointer;width:100%}
+				</style>
+			</head>
+			<body>
+				<div class="box">
+					<?php /* translators: %s: site name */ ?>
+					<h1><?php echo esc_html( sprintf( __( 'Log in to %s', 'instawp-connect' ), $site_name ) ); ?></h1>
+					<form method="post">
+						<button type="submit"><?php esc_html_e( 'Log in', 'instawp-connect' ); ?></button>
+					</form>
+				</div>
+			</body>
+			</html>
+			<?php
+		}
+
 		public function handle_temporary_login_request() {
 
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
@@ -247,14 +299,25 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				exit();
 			}
 
+			// Opening the link only shows a page with a button; the login happens on the POST it
+			// sends. Mail scanners and link previews open links but do not submit forms, so they
+			// can no longer use up the link or receive a session.
+			if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) ) {
+				$this->render_temporary_login_page();
+				exit();
+			}
+
+			if ( ! instawp_reduce_login_attempt( $user->ID ) ) {
+				wp_safe_redirect( home_url() );
+				exit();
+			}
+
 			if ( is_user_logged_in() ) {
 				$current_user_id = get_current_user_id();
 				if ( $user->ID !== $current_user_id ) {
 					wp_logout();
 				}
 			}
-
-			instawp_reduce_login_attempt( $user->ID );
 
 			wp_set_current_user( $user->ID, $user->user_login );
 			wp_set_auth_cookie( $user->ID );
@@ -293,7 +356,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
 			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
 
-			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+			if ( $migration_status === 'initiated' && $is_end_to_end && InstaWP_Access_Control::user_can_access() ) {
 
 				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
 				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
@@ -362,7 +425,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					return;
 				}
 
-				if ( current_user_can( 'manage_options' ) ) {
+				if ( current_user_can( instawp_get_admin_capability() ) ) {
 					$admin_bar->add_menu(
 						array(
 							'parent' => 'instawp',
@@ -492,7 +555,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 				$connect_id = Helper::get_connect_id();
 
-				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
+				if ( ! empty( $connect_id ) && current_user_can( instawp_get_admin_capability() ) ) {
 					$app_domain = Helper::get_api_domain();
 					$admin_bar->add_menu(
 						array(
@@ -507,7 +570,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					);
 				}
 
-				if ( current_user_can( 'manage_options' ) ) {
+				if ( current_user_can( instawp_get_admin_capability() ) ) {
 					$admin_bar->add_menu(
 						array(
 							'parent' => 'instawp',
@@ -524,7 +587,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		private function can_show_navbar() {
-			if ( ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
+			// Visitors never get the menu; stop before reading any setting.
+			if ( ! is_user_logged_in() || ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
 				return false;
 			}
 
@@ -542,10 +606,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			if ( $can_show ) {
-				$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-				if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
-					$can_show = false;
-				}
+				$can_show = InstaWP_Access_Control::user_can_access();
 			}
 
 			return $can_show;
@@ -595,7 +656,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
 			}
 
-			if ( ! instawp_is_admin() ) {
+			$is_admin       = instawp_is_admin( instawp_get_admin_capability() );
+			$access_allowed = InstaWP_Access_Control::user_can_access();
+
+			// Only an admin refused by the list is reported: the nonce is on every wp-admin page, so
+			// any logged-in user could otherwise file high-severity reports.
+			if ( $is_admin && ! $access_allowed ) {
+				InstaWP_Access_Control::queue_denial_report( 'instawp_clear_all' );
+			}
+
+			if ( ! $is_admin || ! $access_allowed ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',
@@ -702,9 +772,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function remove_edge_cache_submenu( $can_show, $current_user ) {
-			$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-			if ( ! empty( $selected_users ) && is_array( $selected_users ) ) {
-				$can_show = ! in_array( $current_user->ID, $selected_users );
+			if ( $can_show && is_object( $current_user ) && isset( $current_user->ID ) ) {
+				$can_show = InstaWP_Access_Control::user_can_access( $current_user->ID );
 			}
 
 			return $can_show;

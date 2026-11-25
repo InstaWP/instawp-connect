@@ -62,19 +62,39 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function auto_login() {
+			// Only a logged-in administrator can use the database manager. A logged-out visitor is
+			// sent to the login screen (not back here); they then open it again from the dashboard.
+			if ( ! is_user_logged_in() ) {
+				wp_safe_redirect( wp_login_url() );
+				exit();
+			}
+
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
+				wp_die( esc_html__( 'You are not allowed to open the Database Manager.', 'instawp-connect' ) );
+			}
+
 			$template = ! empty( $_GET['template'] ) ? sanitize_text_field( wp_unslash( $_GET['template'] ) ) : '';
 			if ( ! $template ) {
 				wp_die( esc_html__( 'Database Manager file not found!', 'instawp-connect' ) );
 			}
 
-			$token = get_transient( 'instawp_database_manager_login_token' );
-			if ( empty( $_GET['token'] ) || ! $token ) {
+			$token_hash = get_transient( DatabaseManager::$token_key );
+			if ( empty( $_GET['token'] ) || ! is_string( $token_hash ) || '' === $token_hash ) {
 				wp_die( esc_html__( 'Auto Login token expired or missing!', 'instawp-connect' ) );
 			}
 
-			if ( ! hash_equals( sanitize_text_field( wp_unslash( $_GET['token'] ) ), hash( 'sha256', $token ) ) ) {
+			if ( ! hash_equals( $token_hash, hash( 'sha256', sanitize_text_field( wp_unslash( $_GET['token'] ) ) ) ) ) {
 				wp_die( esc_html__( 'InstaWP Database Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
+
+			// Single use.
+			delete_transient( DatabaseManager::$token_key );
+
+			// Adminer gets a random password for this session instead of the real database one.
+			// It re-checks the password on every page, so it stays valid while the database
+			// manager file exists (it is removed after an hour).
+			$session_password = wp_generate_password( 32, false );
+			set_transient( DatabaseManager::$password_key, hash( 'sha256', $session_password ), HOUR_IN_SECONDS );
 
 			$database_manager_url = DatabaseManager::get_database_manager_url( base64_decode( $template ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			ob_start() ?>
@@ -83,9 +103,8 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
                 <input type="hidden" name="auth[driver]" required="required" value="server">
                 <!--			<input type="hidden" name="auth[server]" required="required" value="--><?php //echo esc_attr( DB_HOST ); ?><!--">-->
                 <input type="hidden" name="auth[username]" required="required" value="<?php echo esc_attr( DB_USER ); ?>">
-                <input type="hidden" name="auth[password]" required="required" value="<?php echo esc_attr( DB_PASSWORD ); ?>">
+                <input type="hidden" name="auth[password]" required="required" value="<?php echo esc_attr( $session_password ); ?>">
                 <input type="hidden" name="auth[db]" required="required" value="<?php echo esc_attr( DB_NAME ); ?>">
-                <input type="hidden" name="auth[permanent]" required="required" value="1">
             </form>
             <script type="text/javascript">
                 window.onload = function () {
@@ -113,7 +132,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		private function get_template( $template = false ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( instawp_get_admin_capability() ) ) {
 				return $template;
 			}
 

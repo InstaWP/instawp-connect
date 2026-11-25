@@ -1,3 +1,8 @@
+v1.1.5
+======
+- Changed: `WPConfig::set()` uses only the `value` of an array entry; how a value is written is decided by its type, never by the caller.
+- Changed: The database manager uses a random single-use login token, verifies the downloaded Adminer file, and clears its secrets when it is cleaned up.
+
 v1.1.4
 ======
 - Added: The site's CDN state (`cdn_enabled`, `is_insta_site`) from the connect response is stored in `instawp_api_options`, for the instawp-connect CDN auto-purge. A response without them removes both, and both are cleared when the connect id changes.

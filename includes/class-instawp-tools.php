@@ -28,9 +28,15 @@ class InstaWP_Tools {
 	public static function verify_ajax_request( $capability = 'manage_options', $error_data = array() ) {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
+		if ( 'manage_options' === $capability ) {
+			$capability = instawp_get_admin_capability();
+		}
+
 		if ( ! instawp_is_admin( $capability, false ) ) {
 			wp_send_json_error( empty( $error_data ) ? array( 'message' => "Can't perform this action." ) : $error_data );
 		}
+
+		InstaWP_Access_Control::verify_ajax_access( $error_data );
 	}
 
 	public static function send_migration_log( $migrate_id, $label = '', $description = '', $payload = array() ) {
@@ -2177,6 +2183,9 @@ include $file_path;';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_retry_after';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_throwable_log_seen';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_activity_log_send_lock';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
@@ -2271,46 +2280,6 @@ include $file_path;';
 		}
 
 		flush_rewrite_rules( $hard );
-	}
-
-
-	/**
-	 * Write htaccess rules
-	 *
-	 * @return false
-	 */
-	public static function write_htaccess_rule() {
-
-		if ( is_multisite() ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'get_home_path' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		$migration_settings = Option::get_option( 'instawp_migration_settings', array() );
-		$parent_domain      = Helper::get_args_option( 'parent_domain', $migration_settings );
-		$skip_media_folder  = Helper::get_args_option( 'skip_media_folder', $migration_settings, false );
-
-		if ( $skip_media_folder && ! empty( $parent_domain ) ) {
-
-			$htaccess_file    = get_home_path() . '.htaccess';
-			$htaccess_content = array(
-				'## BEGIN InstaWP Connect',
-				'<IfModule mod_rewrite.c>',
-				'RewriteEngine On',
-				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_domain . '/wp-content/uploads/$1',
-				'</IfModule>',
-				'## END InstaWP Connect',
-			);
-			$htaccess_content = implode( "\n", $htaccess_content );
-			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-
-			file_put_contents( $htaccess_file, $htaccess_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-
-		return false;
 	}
 
 
@@ -2799,12 +2768,23 @@ include $file_path;';
 		$site_id        = Helper::get_args_option( 'id', $sites_res_data );
 
 		if ( ! empty( $sites_task_id ) ) {
+			$failed_checks = 0;
+
 			while ( true ) {
 				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
+					// A failed check returns fast, so retrying without the wait spun this loop flat out.
+					++$failed_checks;
+					if ( $failed_checks >= 12 ) {
+						return new WP_Error( 'could_not_check_site_status', esc_html__( 'Could not check the site creation status. Please try again later.', 'instawp-connect' ) );
+					}
+
+					sleep( 5 );
 					continue;
 				}
+
+				$failed_checks = 0;
 
 				$status_res_data     = Helper::get_args_option( 'data', $status_res, array() );
 				$percentage_complete = Helper::get_args_option( 'percentage_complete', $status_res_data, 0 );
