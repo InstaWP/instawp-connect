@@ -99,16 +99,16 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.4.6 - 25 November 2026 =
-- Added: Choose from your InstaWP dashboard which WordPress users can see and use InstaWP Connect on a site: every administrator, only selected users, or everyone except selected users. Admins added to the site later get no access unless you allow them.
-- Changed: Users in the "Hide InstaWP Menu to Users" list are now also blocked from InstaWP Connect actions, not only hidden from the menu.
-- Security: Tightened admin access checks, settings, login links and the database manager. On multisite, the InstaWP admin tools now require a network admin.
-- Security: Hardened user, option, meta and media handling in two-way sync.
-- Fixed: The WooCommerce REST endpoints no longer cause a fatal error on PHP 8.
-- Improved: Sending activity logs and other background work no longer slows down page loads for visitors and admins.
-- Fixed: The activity log now records events for posts, users and plugins with long names, and shows names as plain text.
-- Fixed: The activity log now shows the correct user role.
-- Improved: Refreshing the staging site list makes fewer requests.
-- Changed: Removed unused code and API methods.
+- Added: Choose from your InstaWP dashboard who can see and use InstaWP Connect on each site: every administrator, only selected users, or everyone except selected users. New admins follow your choice automatically.
+- Improved: The "Hide InstaWP Menu to Users" setting now covers all InstaWP Connect actions as well as the menu.
+- Security: Stronger access checks for admin tools, settings, login links and the database manager, with network-admin access for InstaWP tools on multisite.
+- Security: Stronger user, option, meta and media handling in two-way sync.
+- Improved: Full PHP 8 support for the WooCommerce REST endpoints.
+- Improved: Faster page loads for visitors and admins: activity logs and other background work now run in the background.
+- Improved: The activity log records events for posts, users and plugins with long names, and shows names as plain text.
+- Improved: The activity log shows each user's role accurately.
+- Improved: Faster staging site list refresh.
+- Improved: A leaner plugin, with unused code and API methods cleaned up.
 
 = 0.1.4.5 - 16 November 2026 =
 - Security: Hardened a database query in two-way sync.
