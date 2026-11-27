@@ -1699,10 +1699,10 @@ include $file_path;';
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
 					}
-					error_log( 'Inventory fetch error. Response:' . json_encode( $inventory_data ) );
+					Helper::add_error_log( array( 'message' => 'Inventory fetch failed' ) );
 				}
 			}
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 
@@ -2637,6 +2637,7 @@ include $file_path;';
 				array_merge(
 					array(
 						'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups',
+						'wp-content' . DIRECTORY_SEPARATOR . 'instawp-logs',
 						'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
 						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
 						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-helper',

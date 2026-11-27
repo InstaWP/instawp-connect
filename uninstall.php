@@ -71,6 +71,7 @@ delete_option( 'instawp_access_denied_reported' );
 delete_option( 'instawp_large_files_cron_removed' );
 delete_option( 'instawp_retry_after' );
 delete_option( 'instawp_throwable_log_seen' );
+delete_option( 'instawp_debug_log_file' );
 delete_option( 'instawp_activity_log_send_lock' );
 delete_option( 'instawp_backup_part_size' );
 delete_option( 'instawp_max_file_size_allowed' );

@@ -3,6 +3,29 @@ namespace InstaWP\Connect\Helpers;
 
 class DebugLog {
 
+	/**
+	 * Most bytes read from the end of the log. The whole file used to be parsed into memory, so a log of a
+	 * few hundred MB made the request run out of memory and the viewer showed nothing; the newest entries
+	 * are what the viewer is for.
+	 */
+	const MAX_READ_BYTES = 2097152;
+
+	/**
+	 * The resolved path of a .log file, or false: a WP_DEBUG_LOG pointed at wp-config.php or any other file (or a
+	 * .log symlink to one) must not be shown in the log viewer. The cached result is cleared first and the caller
+	 * opens the returned path, so a link swapped in after an earlier check is not followed.
+	 *
+	 * @param string $path File path.
+	 *
+	 * @return string|false
+	 */
+	private static function resolve_log_file( $path ) {
+		clearstatcache( true, $path );
+		$real = realpath( $path );
+
+		return ( false !== $real && is_file( $real ) && 1 === preg_match( '/\.log\z/i', $real ) ) ? $real : false;
+	}
+
     public function fetch() {
 		try {
 			$debug_enabled  = false;
@@ -12,6 +35,7 @@ class DebugLog {
 				$debug_enabled = true;
 
 				if ( is_string( WP_DEBUG_LOG ) && file_exists( WP_DEBUG_LOG ) ) {
+					// A configured file that is not a .log file is refused, not swapped for an older debug.log.
 					$debug_log_file = WP_DEBUG_LOG;
 				}
 			}
@@ -23,8 +47,14 @@ class DebugLog {
 				];
 			}
 
-			$file = $debug_log_file;
-			if ( ! file_exists( $file ) ) {
+			$file = file_exists( $debug_log_file ) ? self::resolve_log_file( $debug_log_file ) : false;
+			if ( false === $file && $debug_log_file !== WP_CONTENT_DIR . '/debug.log' && file_exists( $debug_log_file ) ) {
+				return [
+					'success' => false,
+					'message' => esc_html( 'The debug log set in WP_DEBUG_LOG is not a .log file, so it is not shown.' ),
+				];
+			}
+			if ( false === $file ) {
 				return [
 					'success' => false,
 					'message' => esc_html( 'Debug file not found!' ),
@@ -39,9 +69,31 @@ class DebugLog {
 				];
 			}
 
-			$logs  = [];
-			$store = false;
-			$index = 0;
+			// The open file's own size (not a stat-cached path lookup, which a rotation could make stale).
+			$stat = @fstat( $fh );
+			if ( is_array( $stat ) ) {
+				$size = $stat['size'];
+			} else {
+				clearstatcache( true, $file );
+				$size = @filesize( $file );
+			}
+			// Size unknown: treat it as large, so the read stays bounded.
+			$cut = $size === false || $size > self::MAX_READ_BYTES;
+			if ( $cut ) {
+				// Start one byte before the last MAX_READ_BYTES and drop the partial line the cut landed in.
+				// The extra byte means a cut exactly at a line start only drops the newline before it.
+				if ( 0 === fseek( $fh, -( self::MAX_READ_BYTES + 1 ), SEEK_END ) ) {
+					fgets( $fh );
+				} else {
+					// The file is smaller than the window (or shrank since it was measured): read it from the start.
+					rewind( $fh );
+					$cut = false;
+				}
+			}
+
+			$logs   = [];
+			$orphan = null;
+			$index  = 0;
 			while ( $line = @fgets( $fh ) ) {
 				$sep   = '$!$';
 				$line  = preg_replace( "/^\[([0-9a-zA-Z-]+) ([0-9:]+) ([a-zA-Z_\/]+)\] (.*)$/i", "$1" . $sep . "$2" . $sep . "$3" . $sep . "$4", $line );
@@ -57,15 +109,45 @@ class DebugLog {
 						'message'   => $info,
 					];
 					$index ++;
-				} else {
+				} elseif ( $index > 0 ) {
+					// A continuation line (e.g. a stack trace) belongs to the entry before it.
 					$last_index                     = $index - 1;
 					$logs[ $last_index ]['message'] .= trim( preg_replace( '/\s+/', ' ', $line ) );
+				} elseif ( ! $cut ) {
+					// The file starts with a line that is not an entry header: show it as its own entry.
+					$logs[ $index ] = [
+						'timestamp' => '',
+						'timezone'  => '',
+						'message'   => trim( preg_replace( '/\s+/', ' ', $line ) ),
+					];
+					$index ++;
+				} else {
+					// After a cut, lines before the first header usually belong to an entry that was cut off.
+					// They are kept aside and shown only if the window holds no header at all (a log written
+					// without them), joined the same way the branches above join a file that is not cut.
+					$orphan .= trim( preg_replace( '/\s+/', ' ', $line ) );
 				}
 			}
 			@fclose( $fh );
 
+			if ( empty( $logs ) && null !== $orphan ) {
+				$logs[] = [
+					'timestamp' => '',
+					'timezone'  => '',
+					'message'   => $orphan,
+				];
+			}
+
+			if ( $cut && empty( $logs ) ) {
+				// Say so, rather than an empty list that looks like an empty log.
+				return [
+					'success' => false,
+					'message' => esc_html( sprintf( 'The last %d MB of the debug log contain no complete line.', self::MAX_READ_BYTES / 1048576 ) ),
+				];
+			}
+
 			$results = $logs;
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

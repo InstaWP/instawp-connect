@@ -196,6 +196,44 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					exit();
 				}
 			}
+
+			// A dashboard that honoured iwp_code=1 sends a one-time code instead of the key and JWT.
+			$code = isset( $_REQUEST['code'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['code'] ) ) : '';
+			if ( empty( $access_token ) && ! empty( $code ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				// The same access check as the access_token path above, before the code is traded. The untraded
+				// code is taken out of the address bar.
+				if ( ! InstaWP_Access_Control::user_can_access() ) {
+					InstaWP_Access_Control::queue_denial_report( 'instawp_connect_callback' );
+					wp_safe_redirect( remove_query_arg( array( 'code', 'success', 'instawp-nonce', 'iwp_code' ) ) );
+					exit();
+				}
+				InstaWP_Access_Control::mark_acting_for_user();
+
+				$redirect = admin_url( 'tools.php?page=instawp' );
+				try {
+					// A code that does not have the shape of one was changed on the way here: say so, rather
+					// than the notice for a failed exchange.
+					if ( ! preg_match( INSTAWP_CONNECT_CODE_PATTERN, $code ) ) {
+						wp_safe_redirect( add_query_arg( 'instawp-connect-failed', 'invalid', $redirect ) );
+						exit();
+					}
+
+					$credentials = instawp_redeem_connect_code( $code );
+
+					if ( ! empty( $credentials ) ) {
+						instawp_create_api_connect( $credentials['api_key'], $credentials['jwt'] );
+					} else {
+						$redirect = add_query_arg( 'instawp-connect-failed', '1', $redirect );
+					}
+				} catch ( \Throwable $e ) {
+					instawp_log_throwable( 'Connect with code', $e );
+					$redirect = add_query_arg( 'instawp-connect-failed', '1', $redirect );
+				}
+
+				// Leave the code out of the address bar either way.
+				wp_safe_redirect( $redirect );
+				exit();
+			}
 		}
 
 		public function handle_auto_login_request() {
@@ -690,6 +728,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function admin_notice() {
+			if ( isset( $_GET['instawp-connect-failed'] ) && current_user_can( instawp_get_admin_capability() ) && InstaWP_Access_Control::user_can_access() ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				?>
+				<div class="notice notice-error is-dismissible">
+					<?php if ( 'invalid' === $_GET['instawp-connect-failed'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+						<p><?php esc_html_e( 'This connect link is invalid. Please start connecting again.', 'instawp-connect' ); ?></p>
+					<?php else : ?>
+						<p><?php esc_html_e( 'The site could not be connected to InstaWP. Please try connecting again.', 'instawp-connect' ); ?></p>
+					<?php endif; ?>
+				</div>
+				<?php
+			}
+
 			if ( ! isset( $_GET['instawp-cache-cleared'] ) ) {
 				return;
 			}

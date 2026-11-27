@@ -501,7 +501,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			);
 
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
-				error_log( wp_json_encode( $response ) );
+				Helper::add_error_log( array(
+					'message' => 'Migration abort request failed',
+					'error'   => Helper::get_args_option( 'message', $response ),
+				) );
 			}
 		}
 
@@ -605,6 +608,328 @@ if ( ! function_exists( 'instawp_should_check_schedules' ) ) {
 		}
 
 		return is_admin() && ! wp_doing_ajax();
+	}
+}
+
+if ( ! function_exists( 'instawp_connect_return_url' ) ) {
+	/**
+	 * Where the InstaWP dashboard sends the browser back after the user authorizes this site.
+	 *
+	 * `iwp_code=1` asks the dashboard for a one-time code instead of putting the API key and a JWT in this
+	 * URL, where browser history and access logs would keep them. The code is traded server-to-server in
+	 * instawp_redeem_connect_code(). Dashboards that predate the marker ignore it and send the old
+	 * `access_token`, which InstaWP_Hooks::generate_api_key() still accepts.
+	 *
+	 * @return string
+	 */
+	function instawp_connect_return_url() {
+		return add_query_arg(
+			array(
+				'page'          => 'instawp',
+				'instawp-nonce' => wp_create_nonce( 'instawp_connect_nonce' ),
+				'iwp_code'      => '1',
+			),
+			admin_url( 'tools.php' )
+		);
+	}
+}
+
+if ( ! function_exists( 'instawp_redeem_connect_code' ) ) {
+	/**
+	 * Trade the one-time code from the authorize redirect for the API key and JWT.
+	 *
+	 * Called directly rather than through Curl::do_curl(), which refuses to run without an API key; this
+	 * is the call that obtains one.
+	 *
+	 * @param string $code The code from the redirect.
+	 *
+	 * @return array{api_key: string, jwt: string}|array Empty on any failure.
+	 */
+	function instawp_redeem_connect_code( $code ) {
+		try {
+			if ( ! is_string( $code ) || ! preg_match( INSTAWP_CONNECT_CODE_PATTERN, $code ) ) {
+				return array();
+			}
+
+			$api_domain = rtrim( Helper::get_api_domain(), '/' );
+			if ( empty( $api_domain ) || ( ! defined( 'INSTAWP_API_DOMAIN' ) && ! instawp_is_allowed_api_domain( $api_domain ) ) ) {
+				Helper::add_error_log( array( 'message' => 'Connect code exchange skipped: API domain not allowed' ) );
+
+				return array();
+			}
+
+			$response = wp_remote_post(
+				$api_domain . '/api/v2/connect/token',
+				array(
+					'timeout' => 30,
+					'headers' => array( 'Accept' => 'application/json' ),
+					'body'    => array( 'code' => $code ),
+				)
+			);
+
+			$status = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+			$body   = is_wp_error( $response ) ? array() : json_decode( wp_remote_retrieve_body( $response ), true );
+			$data   = is_array( $body ) && isset( $body['data'] ) && is_array( $body['data'] ) ? $body['data'] : array();
+
+			if ( 200 !== $status || empty( $data['api_key'] ) || empty( $data['jwt'] ) || ! is_string( $data['api_key'] ) || ! is_string( $data['jwt'] ) ) {
+				Helper::add_error_log( array(
+					'message' => 'Connect code exchange failed',
+					'status'  => $status,
+					'error'   => is_wp_error( $response ) ? $response->get_error_message() : '',
+				) );
+
+				return array();
+			}
+
+			return array(
+				'api_key' => $data['api_key'],
+				'jwt'     => $data['jwt'],
+			);
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Connect code exchange', $e );
+
+			return array();
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_private_debug_log_file' ) ) {
+	/**
+	 * The private file WP_DEBUG_LOG points to when debug logging is switched on from the plugin.
+	 *
+	 * WP_DEBUG_LOG = true writes wp-content/debug.log, a URL that is the same on every site. The private
+	 * file lives in wp-content/instawp-logs/ with an unguessable name, and the folder gets index.php and
+	 * .htaccess deny files as a second layer. The name is stored so it stays the same across toggles.
+	 *
+	 * @return string|false Absolute path, or false when the folder cannot be created.
+	 */
+	function instawp_private_debug_log_file() {
+		try {
+			$dir  = wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' );
+			$file = Option::get_option( 'instawp_debug_log_file' );
+
+			// Only a name this function made, directly in this site's folder: a stored value from another host
+			// (a migrated database) or anything else is replaced.
+			if ( ! is_string( $file ) || wp_normalize_path( dirname( $file ) ) !== $dir || ! instawp_is_private_debug_log_path( $file ) ) {
+				$file = $dir . '/debug-' . wp_generate_password( 32, false ) . '.log';
+				Option::update_option( 'instawp_debug_log_file', $file );
+			}
+
+			if ( ! wp_mkdir_p( $dir ) ) {
+				return false;
+			}
+
+			$protect = array(
+				'index.php' => "<?php\n// Silence is golden.\n",
+				'.htaccess' => "<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+			);
+			foreach ( $protect as $name => $content ) {
+				if ( ! file_exists( $dir . '/' . $name ) && false === @file_put_contents( $dir . '/' . $name, $content ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					Helper::add_error_log( array( 'message' => 'Private debug log folder: could not create ' . $name ) );
+				}
+			}
+
+			return $file;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Private debug log setup', $e );
+
+			return false;
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_is_private_debug_log_path' ) ) {
+	/**
+	 * Whether a path has the shape of a private debug log file (instawp-logs/debug-<32 letters/digits>.log).
+	 *
+	 * @param string $path File path.
+	 *
+	 * @return bool
+	 */
+	function instawp_is_private_debug_log_path( $path ) {
+		$path = wp_normalize_path( (string) $path );
+
+		return 'instawp-logs' === basename( dirname( $path ) ) && 1 === preg_match( '/^debug-[A-Za-z0-9]{32}\.log$/', basename( $path ) );
+	}
+}
+
+if ( ! function_exists( 'instawp_move_default_debug_log' ) ) {
+	/**
+	 * Bring the existing wp-content/debug.log into the private file, so the InstaWP log viewer keeps the
+	 * history and the public copy is gone.
+	 *
+	 * A rename is instant at any size. If it is not possible (permissions, or the private file already
+	 * exists and is not empty because entries were written to debug.log again after an earlier move), the last 5 MB is
+	 * appended to the private file and debug.log is then removed (emptied if it cannot be removed), so the
+	 * same entries are not copied again on the next switch.
+	 *
+	 * @param string $target The private log file.
+	 *
+	 * @return bool False when debug.log is still there with its entries (it could not be moved or removed).
+	 */
+	function instawp_move_default_debug_log( $target ) {
+		try {
+			$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
+
+			if ( ! is_file( $default ) || is_link( $default ) ) {
+				return true;
+			}
+
+			// A rename keeps debug.log's own owner and mode, so it is used only when the file is writable;
+			// otherwise the copy below creates a fresh private file this process can write.
+			// An empty private file (for example a probe file that could not be removed) holds nothing, so the rename
+			// may replace it and the whole log is kept. A line another request writes to the private file between
+			// this check and the rename is lost, as with a file created between file_exists() and rename().
+			clearstatcache( true, $target );
+			if ( ( ! file_exists( $target ) || 0 === @filesize( $target ) ) && wp_is_writable( $default ) && @rename( $default, $target ) ) {
+				return true;
+			}
+
+			$in  = @fopen( $default, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$out = $in ? @fopen( $target, 'ab' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$copied = false;
+			if ( $in && $out ) {
+				$max  = 5 * 1024 * 1024;
+				$stat = fstat( $in );
+				if ( is_array( $stat ) && $stat['size'] > $max && 0 === fseek( $in, -( $max + 1 ), SEEK_END ) ) {
+					fgets( $in );
+				}
+				$copied = false !== stream_copy_to_stream( $in, $out );
+			}
+			if ( $in ) {
+				fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+			if ( $out ) {
+				fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
+
+			if ( ! $copied ) {
+				return false;
+			}
+			if ( @unlink( $default ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+				return true;
+			}
+			$empty = @fopen( $default, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $empty ) {
+				return false;
+			}
+			fclose( $empty ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+			return true;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Debug log move', $e );
+
+			return false;
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_can_use_private_debug_log' ) ) {
+	/**
+	 * Whether switching WP_DEBUG_LOG to the private file can work, checked before anything is changed.
+	 *
+	 * The file is created and must be readable and writable, or PHP would drop every entry. An existing
+	 * wp-content/debug.log must be readable and removable (wp-content writable, or the file itself writable
+	 * so it can be emptied), or its history would stay in a file the viewer no longer reads.
+	 *
+	 * @param string $file The private log file.
+	 *
+	 * @return bool
+	 */
+	function instawp_can_use_private_debug_log( $file ) {
+		try {
+			$existed = file_exists( $file );
+			$fh      = @fopen( $file, 'ab' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $fh ) {
+				return false;
+			}
+			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+			// Opening it for appending proved it is a writable file; the viewer also has to read it.
+			clearstatcache();
+			$usable = is_readable( $file );
+
+			$default = wp_normalize_path( WP_CONTENT_DIR . '/debug.log' );
+			if ( $usable && is_file( $default ) && ! is_link( $default ) ) {
+				$usable = is_readable( $default ) && ( wp_is_writable( WP_CONTENT_DIR ) || wp_is_writable( $default ) );
+			}
+
+			// Remove the probe file this check created, so debug.log is renamed (all of it kept, same owner) rather
+			// than copied (only its last 5 MB). If it cannot be removed it stays empty, which the move also renames over.
+			if ( ! $existed ) {
+				@unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			}
+
+			return $usable;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Private debug log check', $e );
+
+			return false;
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_resolve_log_file' ) ) {
+	/**
+	 * The resolved path of a .log file, or false: a WP_DEBUG_LOG pointed at wp-config.php or any other file (or a
+	 * .log symlink to one) must not be shown by the Debug Log button. The cached result is cleared first and the
+	 * caller opens the returned path, so a link swapped in after an earlier check is not followed.
+	 *
+	 * @param string $path File path.
+	 *
+	 * @return string|false
+	 */
+	function instawp_resolve_log_file( $path ) {
+		$path = (string) $path;
+		clearstatcache( true, $path );
+		$real = realpath( $path );
+
+		return ( false !== $real && is_file( $real ) && 1 === preg_match( '/\.log\z/i', $real ) ) ? $real : false;
+	}
+}
+
+if ( ! function_exists( 'instawp_current_debug_log_tail' ) ) {
+	/**
+	 * The last part of the log file WP_DEBUG_LOG currently writes to, as plain text.
+	 *
+	 * @param int $max_bytes Most bytes returned.
+	 *
+	 * @return string|false False when there is no log file.
+	 */
+	function instawp_current_debug_log_tail( $max_bytes = 2097152 ) {
+		try {
+			$file   = WP_CONTENT_DIR . '/debug.log';
+			$stored = Option::get_option( 'instawp_debug_log_file' );
+			if ( defined( 'WP_DEBUG_LOG' ) && is_string( WP_DEBUG_LOG ) && is_file( WP_DEBUG_LOG ) ) {
+				// A configured file that is not a .log file is refused below, not swapped for another log.
+				$file = WP_DEBUG_LOG;
+			} elseif ( ! is_file( $file ) && is_string( $stored ) && instawp_is_private_debug_log_path( $stored ) && is_file( $stored )
+				&& wp_normalize_path( dirname( $stored ) ) === wp_normalize_path( WP_CONTENT_DIR . '/instawp-logs' ) ) {
+				// Debug logging is off again: the history is still in this site's private file. A stored name from
+				// another site (a cloned database) is not read.
+				$file = $stored;
+			}
+
+			$real = is_file( $file ) ? instawp_resolve_log_file( $file ) : false;
+			$fh   = false !== $real ? @fopen( $real, 'rb' ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( ! $fh ) {
+				return false;
+			}
+
+			$stat = fstat( $fh );
+			if ( is_array( $stat ) && $stat['size'] > $max_bytes && 0 === fseek( $fh, -( $max_bytes + 1 ), SEEK_END ) ) {
+				fgets( $fh );
+			}
+			$text = stream_get_contents( $fh, $max_bytes );
+			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+			// Nothing, or one unterminated line longer than the limit, reads as no log rather than a blank page.
+			return ( false === $text || '' === $text ) ? false : $text;
+		} catch ( \Throwable $e ) {
+			instawp_log_throwable( 'Debug log read', $e );
+
+			return false;
+		}
 	}
 }
 
